@@ -100,6 +100,21 @@ class WordCounter:
                 biwords_freq += "\t{}: {}\n".format(word, count)
             fh.write(biwords_freq)
 
+            bisymb_alph_list = sorted([(w, c) for w, c in stats['bisymbol'].items()])
+            if not full:
+                bisymb_alph_list = bisymb_alph_list[:20]
+            bisymb_alph = 'Symbol pairs (alphabetical order):\n'
+            for word, count in bisymb_alph_list:
+                bisymb_alph += "\t{}: {}\n".format(word, count)
+            fh.write(bisymb_alph)
+            
+            bisymb_freq_list = sort_dic_by_values(stats['bisymbol'])
+            if not full:
+                bisymb_freq_list = bisymb_freq_list[:20]
+            bisymb_freq = 'Symbol pairs (by frequency):\n'
+            for word, count in bisymb_freq_list:
+                bisymb_freq += "\t{}: {}\n".format(word, count)
+            fh.write(bisymb_freq)
 
     def file_stats(self, filename, lower, stopwordsfile, bigrams, full):
         """
@@ -139,7 +154,7 @@ class WordCounter:
                 # if bigrams:
                 #     line_bigram = '$ ' + line + ' $'
                 
-                prev_word = '$'
+                prev_word = '$' # if None prev word was stopword
                 words = line.split()
                 for index, word in enumerate(words):
                     word = self.clean_re.sub('', word)
@@ -150,25 +165,34 @@ class WordCounter:
                         # assuming stopwords are lowercase
                         if word.lower() not in stopwords: 
                             sts['nwords_without_stopwords'] += 1
-                        else:
+                        else: # word is stopword
+                            prev_word = None
                             continue # does not add stopwords to vocabulary
 
                     sts['word'][word] =  sts['word'].get(word, 0) + 1
                     
                     # TODO understand stopword counted as bigram or not
-                    if bigrams:
-                        biword = prev_word + ' ' + word
-                        sts['biword'][biword] = sts['biword'].get(biword, 0) + 1
+                    if bigrams:                        
+                        if prev_word is not None:
+                            biword = prev_word + ' ' + word
+                            sts['biword'][biword] = sts['biword'].get(biword, 0) + 1
 
-                        if index == len(words): # last word of line
+                        if index == len(words) - 1: # last word of line
                             biword = word + ' $'
                             sts['biword'][biword] = sts['biword'].get(biword, 0) + 1
                             prev_word = '$' # for next line
                         else:
                             prev_word = word
-                        
+                    
+                    prev_s = None
                     for s in word:
                         sts['symbol'][s] =  sts['symbol'].get(s, 0) + 1
+                        
+                        if bigrams and prev_s is not None: # not first char
+                            bisymbol = prev_s + s
+                            print(bisymbol)
+                            sts['bisymbol'][bisymbol] =  sts['bisymbol'].get(bisymbol, 0) + 1
+                        prev_s = s
         
         # create new filename
         new_filename = ''
@@ -187,7 +211,6 @@ class WordCounter:
         new_filename += 'stats'
         if '.' in filename:
             new_filename += '.' + ext
-
 
         self.write_stats(new_filename, sts, stopwordsfile is not None, full)
 
