@@ -46,7 +46,6 @@ class WordCounter:
             fh.write('Number words (including stopwords): {}\n'.format(stats['nwords']))
             if(use_stopwords):
                 fh.write('Number words (without stopwords): {}\n'.format(stats['nwords_without_stopwords']))
-                # TODO STOPWORDS
             fh.write('Vocabulary size: {}\n'.format(len(stats['word'])))
             fh.write('Number of symbols: {}\n'.format(sum(stats['symbol'].values())))
             fh.write('Number of different symbols: {}\n'.format(len(stats['symbol'])))
@@ -85,6 +84,23 @@ class WordCounter:
                 symb_freq += "\t{}: {}\n".format(word, count)
             fh.write(symb_freq)
 
+            biwords_alph = 'Word pairs (alphabetical order):\n'
+            biwords_alph_list = sorted([(w, c) for w, c in stats['biword'].items()])
+            if not full:
+                biwords_alph_list = biwords_alph_list[:20]
+            for word, count in biwords_alph_list:
+                biwords_alph += "\t{}: {}\n".format(word, count)
+            fh.write(biwords_alph)
+
+            biwords_freq_list = sort_dic_by_values(stats['biword'])
+            if not full:
+                biwords_freq_list = biwords_freq_list[:20]
+            biwords_freq = 'Word pairs (by frequency):\n'
+            for word, count in biwords_freq_list:
+                biwords_freq += "\t{}: {}\n".format(word, count)
+            fh.write(biwords_freq)
+
+
     def file_stats(self, filename, lower, stopwordsfile, bigrams, full):
         """
         Este método calcula las estadísticas de un fichero de texto
@@ -120,14 +136,16 @@ class WordCounter:
         with open(filename, 'r') as fh:
             for line in fh:
                 sts['nlines'] += 1
-                if bigrams:
-                    line_bigram = '$ ' + line + ' $'
-
-                for word in line.split():
+                # if bigrams:
+                #     line_bigram = '$ ' + line + ' $'
+                
+                prev_word = '$'
+                words = line.split()
+                for index, word in enumerate(words):
                     word = self.clean_re.sub('', word)
-                    if lower:
-                        word = word.lower()
+                    if lower: word = word.lower()
                     sts['nwords'] += 1
+
                     if stopwordsfile: 
                         # assuming stopwords are lowercase
                         if word.lower() not in stopwords: 
@@ -135,11 +153,20 @@ class WordCounter:
                         else:
                             continue # does not add stopwords to vocabulary
 
-                    # TODO delete stopwords
                     sts['word'][word] =  sts['word'].get(word, 0) + 1
+                    
                     # TODO understand stopword counted as bigram or not
-                    #if bigrams:
+                    if bigrams:
+                        biword = prev_word + ' ' + word
+                        sts['biword'][biword] = sts['biword'].get(biword, 0) + 1
 
+                        if index == len(words): # last word of line
+                            biword = word + ' $'
+                            sts['biword'][biword] = sts['biword'].get(biword, 0) + 1
+                            prev_word = '$' # for next line
+                        else:
+                            prev_word = word
+                        
                     for s in word:
                         sts['symbol'][s] =  sts['symbol'].get(s, 0) + 1
         
