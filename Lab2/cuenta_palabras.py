@@ -1,6 +1,6 @@
 #! -*- encoding: utf8 -*-
 
-## Nombres: 
+## Nombres: Francesco Fulco Gonzales
 
 ########################################################################
 ########################################################################
@@ -120,15 +120,26 @@ class WordCounter:
         with open(filename, 'r') as fh:
             for line in fh:
                 sts['nlines'] += 1
+                if bigrams:
+                    line_bigram = '$ ' + line + ' $'
+
                 for word in line.split():
                     word = self.clean_re.sub('', word)
                     if lower:
                         word = word.lower()
                     sts['nwords'] += 1
-                    if stopwordsfile and word.lower() not in stopwords: # assuming stopwords are lowercase
-                        sts['nwords_without_stopwords'] += 1
+                    if stopwordsfile: 
+                        # assuming stopwords are lowercase
+                        if word.lower() not in stopwords: 
+                            sts['nwords_without_stopwords'] += 1
+                        else:
+                            continue # does not add stopwords to vocabulary
+
                     # TODO delete stopwords
                     sts['word'][word] =  sts['word'].get(word, 0) + 1
+                    # TODO understand stopword counted as bigram or not
+                    #if bigrams:
+
                     for s in word:
                         sts['symbol'][s] =  sts['symbol'].get(s, 0) + 1
         
