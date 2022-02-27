@@ -1,14 +1,8 @@
 #! -*- encoding: utf8 -*-
 
-## Nombres: Francesco Fulco Gonzales
+## Nombre: Francesco Fulco Gonzales
 
-########################################################################
-########################################################################
-###                                                                  ###
-###  Todos los métodos y funciones que se añadan deben documentarse  ###
-###                                                                  ###
-########################################################################
-########################################################################
+## Implementado funcionalidades básicas y ampliación de cálculo de bigramas  
 
 import argparse
 import re
@@ -55,7 +49,6 @@ class WordCounter:
                 words_alph += "\t{}: {}\n".format(word, count)
             fh.write(words_alph)
             
-            #words_freq_list = sorted([(c, w) for w, c in stats['word'].items()], reverse=True)
             words_freq_list = sort_dic_by_values(stats['word'])
             if not full:
                 words_freq_list = words_freq_list[:20]
@@ -72,7 +65,6 @@ class WordCounter:
                 symb_alph += "\t{}: {}\n".format(word, count)
             fh.write(symb_alph)
             
-            #symb_freq_list = sorted([(c, w) for w, c in stats['symbol'].items()], reverse=True)
             symb_freq_list = sort_dic_by_values(stats['symbol'])
             if not full:
                 symb_freq_list = symb_freq_list[:20]
@@ -130,8 +122,6 @@ class WordCounter:
 
         stopwords = [] if stopwordsfile is None else open(stopwordsfile).read().split()
 
-        # variables for results
-
         sts = {
                 'nwords': 0,
                 'nlines': 0,
@@ -181,7 +171,7 @@ class WordCounter:
                     for s in word:
                         sts['symbol'][s] =  sts['symbol'].get(s, 0) + 1
                         
-                        if bigrams and prev_s is not None: # not first char
+                        if bigrams and prev_s is not None: # is not first char of word
                             bisymbol = prev_s + s
                             sts['bisymbol'][bisymbol] =  sts['bisymbol'].get(bisymbol, 0) + 1
                         prev_s = s
@@ -249,5 +239,3 @@ if __name__ == "__main__":
                      stopwordsfile=args.stopwords,
                      bigrams=args.bigram,
                      full=args.full)
-
-
