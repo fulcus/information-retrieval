@@ -12,7 +12,6 @@
 
 import argparse
 import re
-import sys
 
 
 def sort_dic_by_values(d, asc=True):
@@ -24,10 +23,8 @@ class WordCounter:
         """
            Constructor de la clase WordCounter
         """
-        self.clean_re = re.compile('\W+') # match words that contain puctuation, use sub to delete it
-        # clean_words = self.clean_re.sub('', word).split()
-        # from dict get list -> order list: sort
-        # sorted(dict) by key
+        self.clean_re = re.compile('\W+') # match every char that is not alphanumeric
+
     def write_stats(self, filename, stats, use_stopwords, full):
         """
         Este método escribe en fichero las estadísticas de un texto
@@ -83,38 +80,39 @@ class WordCounter:
             for word, count in symb_freq_list:
                 symb_freq += "\t{}: {}\n".format(word, count)
             fh.write(symb_freq)
-
-            biwords_alph = 'Word pairs (alphabetical order):\n'
-            biwords_alph_list = sorted([(w, c) for w, c in stats['biword'].items()])
-            if not full:
-                biwords_alph_list = biwords_alph_list[:20]
-            for word, count in biwords_alph_list:
-                biwords_alph += "\t{}: {}\n".format(word, count)
-            fh.write(biwords_alph)
-
-            biwords_freq_list = sort_dic_by_values(stats['biword'])
-            if not full:
-                biwords_freq_list = biwords_freq_list[:20]
-            biwords_freq = 'Word pairs (by frequency):\n'
-            for word, count in biwords_freq_list:
-                biwords_freq += "\t{}: {}\n".format(word, count)
-            fh.write(biwords_freq)
-
-            bisymb_alph_list = sorted([(w, c) for w, c in stats['bisymbol'].items()])
-            if not full:
-                bisymb_alph_list = bisymb_alph_list[:20]
-            bisymb_alph = 'Symbol pairs (alphabetical order):\n'
-            for word, count in bisymb_alph_list:
-                bisymb_alph += "\t{}: {}\n".format(word, count)
-            fh.write(bisymb_alph)
             
-            bisymb_freq_list = sort_dic_by_values(stats['bisymbol'])
-            if not full:
-                bisymb_freq_list = bisymb_freq_list[:20]
-            bisymb_freq = 'Symbol pairs (by frequency):\n'
-            for word, count in bisymb_freq_list:
-                bisymb_freq += "\t{}: {}\n".format(word, count)
-            fh.write(bisymb_freq)
+            if len(stats['bisymbol']) > 0:
+                biwords_alph = 'Word pairs (alphabetical order):\n'
+                biwords_alph_list = sorted([(w, c) for w, c in stats['biword'].items()])
+                if not full:
+                    biwords_alph_list = biwords_alph_list[:20]
+                for word, count in biwords_alph_list:
+                    biwords_alph += "\t{}: {}\n".format(word, count)
+                fh.write(biwords_alph)
+
+                biwords_freq_list = sort_dic_by_values(stats['biword'])
+                if not full:
+                    biwords_freq_list = biwords_freq_list[:20]
+                biwords_freq = 'Word pairs (by frequency):\n'
+                for word, count in biwords_freq_list:
+                    biwords_freq += "\t{}: {}\n".format(word, count)
+                fh.write(biwords_freq)
+
+                bisymb_alph_list = sorted([(w, c) for w, c in stats['bisymbol'].items()])
+                if not full:
+                    bisymb_alph_list = bisymb_alph_list[:20]
+                bisymb_alph = 'Symbol pairs (alphabetical order):\n'
+                for word, count in bisymb_alph_list:
+                    bisymb_alph += "\t{}: {}\n".format(word, count)
+                fh.write(bisymb_alph)
+                
+                bisymb_freq_list = sort_dic_by_values(stats['bisymbol'])
+                if not full:
+                    bisymb_freq_list = bisymb_freq_list[:20]
+                bisymb_freq = 'Symbol pairs (by frequency):\n'
+                for word, count in bisymb_freq_list:
+                    bisymb_freq += "\t{}: {}\n".format(word, count)
+                fh.write(bisymb_freq)
 
     def file_stats(self, filename, lower, stopwordsfile, bigrams, full):
         """
@@ -138,40 +136,35 @@ class WordCounter:
                 'nwords': 0,
                 'nlines': 0,
                 'word': {},
-                'symbol': {}
+                'symbol': {},
+                'biword' : {},
+                'bisymbol' : {}
                 }
 
-        if bigrams:
-            sts['biword'] = {}
-            sts['bisymbol'] = {}
-
-        if stopwordsfile: # TODO stopwords included in other statistics?
+        if stopwordsfile:
             sts['nwords_without_stopwords'] = 0
 
         with open(filename, 'r') as fh:
             for line in fh:
                 sts['nlines'] += 1
-                # if bigrams:
-                #     line_bigram = '$ ' + line + ' $'
                 
                 prev_word = '$' # if None prev word was stopword
-                words = line.split()
+                words = self.clean_re.sub(' ', line).split()
+
                 for index, word in enumerate(words):
-                    word = self.clean_re.sub('', word)
+                    if word == '': continue 
                     if lower: word = word.lower()
                     sts['nwords'] += 1
 
                     if stopwordsfile: 
-                        # assuming stopwords are lowercase
-                        if word.lower() not in stopwords: 
-                            sts['nwords_without_stopwords'] += 1
-                        else: # word is stopword
+                        if word in stopwords:
                             prev_word = None
                             continue # does not add stopwords to vocabulary
+                        else:
+                            sts['nwords_without_stopwords'] += 1
 
                     sts['word'][word] =  sts['word'].get(word, 0) + 1
                     
-                    # TODO understand stopword counted as bigram or not
                     if bigrams:                        
                         if prev_word is not None:
                             biword = prev_word + ' ' + word
@@ -190,7 +183,6 @@ class WordCounter:
                         
                         if bigrams and prev_s is not None: # not first char
                             bisymbol = prev_s + s
-                            print(bisymbol)
                             sts['bisymbol'][bisymbol] =  sts['bisymbol'].get(bisymbol, 0) + 1
                         prev_s = s
         
