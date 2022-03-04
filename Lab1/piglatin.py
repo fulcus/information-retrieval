@@ -61,7 +61,7 @@ class Translator():
         """
 
         new_sentence = ''
-        words_punt = sentence.split(' ') # TODO OR ' ' 
+        words_punt = sentence.split(' ')
         for word_punt in words_punt:
             for word, punt in self.re.findall(word_punt):
                 new_word = self.translate_word(word) + punt + ' '
