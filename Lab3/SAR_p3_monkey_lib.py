@@ -8,14 +8,7 @@ import re
 
 ## Nombres: Francesco Fulco Gonzales
 
-########################################################################
-########################################################################
-###                                                                  ###
-###  Todos los métodos y funciones que se añadan deben documentarse  ###
-###                                                                  ###
-########################################################################
-########################################################################
-
+## Implementado funcionalidades básicas y ampliación de trigramas  
 
 
 def sort_index(d):
@@ -31,10 +24,11 @@ class Monkey():
 
 
     def index_sentence(self, sentence, tri):
-        # limpia y trocea la frase
-        # anade bigramas a self.index
-
         '''
+        1) limpia y trocea la frase
+        2) añade bigramas a self.index
+
+        El diccionario creado tiene la forma siguiente:
         {
             'bi': {
                 'word': {'spam': 5, 'other': 10}
@@ -90,10 +84,8 @@ class Monkey():
         with open(filename, 'r') as fh:
             text =  fh.read().lower()
             split_double_line = text.split('\n\n')
-            #print(split_double_line)
             for s in split_double_line:
                 for sentence in self.r1.split(s):
-                    #print(sentence)
                     self.index_sentence(sentence, tri)
 
         sort_index(self.index['bi'])
@@ -136,11 +128,11 @@ class Monkey():
     
     def sample_following_word_bi(self, word):
         '''
-        Example
-        input: (11, [(5, 'spam'), (5, 'egg'), (1, 'lobster')])
-        output: [5, 5, 1], ['spam', 'egg', 'lobster']
+        Devuelve la siguiente palabra mediante el muestreo de la distribución 
+        de las palabras que vienen después de la parabla "word"
         '''
-        words_tuples = self.index['bi'][word][1]
+
+        words_tuples = self.index['bi'][word][1] # (11, [(5, 'spam'), (5, 'egg'), (1, 'lobster')])
         words = []
         freqs = [] 
         for f, w in words_tuples:
@@ -152,11 +144,9 @@ class Monkey():
         return next_word
 
     def sample_following_word_tri(self, couple):
-        # TODO
         '''
-        Example
-        input: (11, [(5, 'spam'), (5, 'egg'), (1, 'lobster')])
-        output: [5, 5, 1], ['spam', 'egg', 'lobster']
+        Devuelve la siguiente palabra mediante el muestreo de la distribución 
+        de las palabras que vienen después de la pareja "couple"
         '''
 
         words_tuples = self.index['tri'][couple][1]
@@ -177,23 +167,22 @@ class Monkey():
         '''
         for _ in range(0, n): # sentences
             sentence = ''
-            word = None
-            prev_word = '$'
+            word = prev_word = None
             for _ in range(0, 25): # words
                 if 'tri' in self.index:
-                   
-                    #print('init: ' + prev_word + ', ' + str(word))
+                    #print("({}, {})".format(prev_word, word))
+
                     if word is None:  # if first word sample from bi
+                        prev_word = '$'
                         word = self.sample_following_word_bi(prev_word)
-                        #print('bigrams chose: ' + word)
                     else:
                         old_word = word
                         word = self.sample_following_word_tri((prev_word, word))
                         if word == '$':
                             break
                         prev_word = old_word
-                
                 else: # bi
+                    if word is None: word = '$'
                     word = self.sample_following_word_bi(word)
                     if word == '$':
                         break
