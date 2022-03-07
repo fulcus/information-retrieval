@@ -68,12 +68,11 @@ class Monkey():
                     self.index['bi'][word] = {}
                 self.index['bi'][word]['$'] = self.index['bi'][word].get('$', 0) + 1
 
-                if tri and prev_prev_word is not None:
+                if tri:
                     couple = (prev_word, word)
                     if couple not in self.index['tri']:
                         self.index['tri'][couple] = {}
                     self.index['tri'][couple]['$'] = self.index['tri'][couple].get('$', 0) + 1
-                
                 # for next sentence
                 prev_word = '$' 
                 prev_prev_word = None
