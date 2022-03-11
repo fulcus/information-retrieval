@@ -6,7 +6,7 @@ import pickle
 import random
 import re
 
-## Nombres: Francesco Fulco Gonzales
+## Nombre: Francesco Fulco Gonzales
 
 ## Implementado funcionalidades básicas y ampliación de trigramas  
 
