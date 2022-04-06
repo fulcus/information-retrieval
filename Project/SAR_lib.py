@@ -141,6 +141,10 @@ class SAR_Project:
         self.positional = args['positional']
         self.stemming = args['stem']
         self.permuterm = args['permuterm']
+        
+        # multifield: self.index = {'article' : {term1: [], ...}, 'title': {term1: [], ...}}
+        # in multifield if no other field is specified use 'article'
+        self.index['article'] = {} 
 
         for dir, subdirs, files in os.walk(root):
             for filename in files:
@@ -148,9 +152,15 @@ class SAR_Project:
                     fullname = os.path.join(dir, filename)
                     self.index_file(fullname)
         
+        # debug
+        # filename = '2016-01-31.json'
+        # if filename.endswith('.json'):
+        #     fullname = os.path.join(root, filename)
+        #     self.index_file(fullname)
+
         
-        for word in self.index.keys():
-            self.index[word] = sorted(self.index[word])
+        for word in self.index['article'].keys():
+            self.index['article'][word] = sorted(self.index['article'][word])
 
 
         ##########################################
@@ -181,33 +191,33 @@ class SAR_Project:
         with open(filename) as fh:
             jlist = json.load(fh)
 
-        print(filename + ' ' + str(len(jlist)))
+        #print(filename + ' ' + str(len(jlist)))
         
-        # a.json : [{}, {}, {}] docid 0, 1, 2; newsid 0
-        # b.json : [{}, {}, {}] docid 3, 4, 5;  newsid 1
-
-        # self.news[docid] = (newid, pos) ; pos is the local position of doc in json file, whereas docid is global counter
-
-        # basic implem: self.index[term] = [docid1, docid2, ...]  
-        # self.index['article'][term] = [docid1, docid2, ...] # multifield
-        # self.index = {'article' : {term1: [], ...}, 'title': {term1: [], ...}}
-        # in multifield if no other field is specified use 'article'
+        # a.json : [{}, {}, {}] newsid 0, 1, 2; docid 0
+        # b.json : [{}, {}, {}] newsid 3, 4, 5;  docid 1
         
-        for new_pos, new in enumerate(jlist):
-            # COMPLETAR: asignar identificador a la noticia 'new' 
-            
-            docid = len(self.index) # article index (one item of json)
-
-            #self.news[docid] = (newid, new_pos)
+        # Asignar a cada documento un identificador unico (docid) que sera un entero secuencial
+        # Asignar a cada noticia un identificador unico. Se debe saber a que documento (fichero) 
+        # pertenece cada noticia y que posicion relativa ocupa dentro de el
+        docid = len(self.docs)
+        self.docs[docid] = filename
+        newsid = len(self.news)
+        
+        # for each article in the json file
+        for news_pos, new in enumerate(jlist):
+            # newsid is global id of an article
+            # news_pos is the position of the article within the file
+            self.news[newsid] = (docid, news_pos) 
 
             words = self.tokenize(new['article']) 
-            
-            # TODO change all self.index[word] in self.index['article'][word]
+
             for word in words: 
-                if word not in self.index:
-                    self.index[word] = set()
-                self.index[word].add(docid)
-                
+                if word not in self.index['article']:
+                    self.index['article'][word] = set()
+                self.index['article'][word].add(newsid) # posting list of news, not of docs
+            
+            newsid += 1
+
 
     def tokenize(self, text):
         """
@@ -300,14 +310,14 @@ class SAR_Project:
         return: posting list con el resultado de la query
 
         """
-
+        #print("idx query", self.index['article'])
         if query is None or len(query) == 0:
             return []
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-
-        return self.index[query]
+    
+        return self.index['article'][query]
 
 
  
