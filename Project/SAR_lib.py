@@ -274,10 +274,28 @@ class SAR_Project:
         Muestra estadisticas de los indices
         
         """
-        pass
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        print('========================================')
+        print('Number of indexed days: {}'.format(len(self.docs)))
+        print('----------------------------------------')
+        print('Number of indexed news: {}'.format(len(self.news)))
+        print('----------------------------------------')
+        print('TOKENS:')
+        for field in self.index.keys():
+            print("\t# of tokens in '{}': {}".format(field, len(self.index[field])))
+        print('----------------------------------------')
+        if (self.permuterm):
+            print('PERMUTERMS:')
+            for field in self.ptindex.keys():
+                 print("\t# of tokens in '{}': {}".format(field, len(self.ptindex[field])))
+            print('----------------------------------------')
+        if (self.stemming):
+            print('STEMS:')
+            for field in self.sindex.keys():
+                 print("\t# of tokens in '{}': {}".format(field, len(self.sindex[field])))
+            print('----------------------------------------')
+        print('Positional queries are ' +  ('' if self.positional else 'NOT ') + 'allowed')
+        print('========================================')
+
 
         
 
@@ -316,6 +334,7 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
+        query = query.lower()
     
         return self.index['article'][query]
 
