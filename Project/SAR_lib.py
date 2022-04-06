@@ -144,7 +144,12 @@ class SAR_Project:
         
         # multifield: self.index = {'article' : {term1: [], ...}, 'title': {term1: [], ...}}
         # in multifield if no other field is specified use 'article'
-        self.index['article'] = {} 
+        self.index['article'] = {}
+        if self.multifield:
+            self.index['title'] = {}
+            self.index['summary'] = {}
+            self.index['keywords'] = {}
+            self.index['date'] = {}
 
         for dir, subdirs, files in os.walk(root):
             for filename in files:
@@ -159,6 +164,7 @@ class SAR_Project:
         #     self.index_file(fullname)
 
         
+        # TODO is it necessary to sort postings list?
         for word in self.index['article'].keys():
             self.index['article'][word] = sorted(self.index['article'][word])
 
@@ -208,13 +214,25 @@ class SAR_Project:
             # newsid is global id of an article
             # news_pos is the position of the article within the file
             self.news[newsid] = (docid, news_pos) 
+            
+            if self.multifield:
+                # TODO verify: campo 'date' contiene el valor de la fecha de la noticia
+                new_date = new['date']
+                if new_date not in self.index['date']:
+                    self.index['date'][new_date] = [newsid]
+                else:
+                    self.index['date'][new_date].append(newsid)
+                fields = ["title", "keywords", "article", "summary"]
+            else:
+                fields = ["article"]
+                
+            for field in fields:
+                words = self.tokenize(new[field]) 
 
-            words = self.tokenize(new['article']) 
-
-            for word in words: 
-                if word not in self.index['article']:
-                    self.index['article'][word] = set()
-                self.index['article'][word].add(newsid) # posting list of news, not of docs
+                for word in words: 
+                    if word not in self.index[field]:
+                        self.index[field][word] = set()
+                    self.index[field][word].add(newsid) # posting list of news, not of docs
             
             newsid += 1
 
@@ -274,26 +292,28 @@ class SAR_Project:
         Muestra estadisticas de los indices
         
         """
+        fields = [f for f, _ in self.fields] if self.multifield else ['article']
+
         print('========================================')
         print('Number of indexed days: {}'.format(len(self.docs)))
         print('----------------------------------------')
         print('Number of indexed news: {}'.format(len(self.news)))
         print('----------------------------------------')
         print('TOKENS:')
-        for field in self.index.keys():
+        for field in fields:
             print("\t# of tokens in '{}': {}".format(field, len(self.index[field])))
         print('----------------------------------------')
         if (self.permuterm):
             print('PERMUTERMS:')
-            for field in self.ptindex.keys():
+            for field in fields:
                  print("\t# of tokens in '{}': {}".format(field, len(self.ptindex[field])))
             print('----------------------------------------')
         if (self.stemming):
             print('STEMS:')
-            for field in self.sindex.keys():
+            for field in fields:
                  print("\t# of tokens in '{}': {}".format(field, len(self.sindex[field])))
             print('----------------------------------------')
-        print('Positional queries are ' +  ('' if self.positional else 'NOT ') + 'allowed')
+        print('Positional queries are ' +  ('' if self.positional else 'NOT ') + 'allowed.')
         print('========================================')
 
 
