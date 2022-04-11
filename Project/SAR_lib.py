@@ -354,7 +354,6 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-        
         query = query.lower()           #To lowercase
         query_split = query.split(' ')      #Split query by terms
         
