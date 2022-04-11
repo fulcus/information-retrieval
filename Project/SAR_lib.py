@@ -433,10 +433,19 @@ class SAR_Project:
         """
 
         stem = self.stemmer.stem(term)
+        
+         # Creamos stem del término
+        stem = self.stemmer.stem(term)
+        res = []
 
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
+        # Búscamos si está indexado
+        if (stem in self.sindex[field]):
+
+            # Devolvemos la posting list asociada 
+            res = self.sindex[field][stem]
+
+        return res
+    
 
     def get_permuterm(self, term, field='article'):
         """
