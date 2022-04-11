@@ -250,11 +250,19 @@ class SAR_Project:
         self.stemmer.stem(token) devuelve el stem del token
 
         """
+           # Recorremos todos los campos del indice de terminos
+        for field in self.index:
 
-        pass
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
+            # Recorremos todos los terminos del campo
+            for term in self.index[field]:
+                    
+                # Si antes no hemos hecho el stemming del termino generamos el stem
+                stem = self.stemmer.stem(term)
+                
+                # Si aun no hemos añadido el stem lo añadimos  
+                self.sindex[field][stem] = self.or_posting(self.sindex[field].get(stem, []),self.index[field][term])
+        
+        
 
     def make_permuterm(self):
         """
