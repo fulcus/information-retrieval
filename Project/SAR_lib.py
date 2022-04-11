@@ -354,9 +354,32 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-        query = query.lower()
-    
-        return self.index['article'][query]
+        
+        query = query.lower()           #To lowercase
+        query_split = query.split(' ')      #Split query by terms
+        
+        if query_split[0] == 'not': n=2;prev = self.reverse_posting(self.get_posting(query_split[1]))          #If first term a NOT, get the postinglist of NOT term
+        else: n=1;prev = self.get_posting(query_split[0])                                       #If not, get the posting list of the first term
+
+        return self.solve_query_by_term(query_split[n:], prev)                      #Call recursive function
+
+
+
+    def solve_query_by_term(self, query, prev):                                     #Recursive function
+        if len(query) == 0: return prev         #Base case
+        else:                                   #Recursive case
+            t2 = {}                             #Var fot postinglist of term2
+            if query[0] == 'and':   #If AND
+                if query[1] == 'not': n=3;t2 = self.reverse_posting(self.get_posting(query[2]))  #If term2 needs to be NOT
+                else: n=2;t2 = self.get_posting(query[1])        
+                prev = self.and_posting(prev, t2)           #Get postinglist of prev AND t2
+                return self.solve_query_by_term(query[n:], prev)
+
+            elif query[0] == 'or':     #If OR
+                if query[1] == 'not': n=3;t2 = self.reverse_posting(self.get_posting(query[2]))  #If term2 needs to be NOT
+                else: n=2;t2 = self.get_posting(query[1])
+                prev = self.or_posting(prev, t2)             #Get postinglist of prev OR t2
+                return self.solve_query_by_term(query[n:], prev)
 
 
  
@@ -374,15 +397,20 @@ class SAR_Project:
 
 
         param:  "term": termino del que se debe recuperar la posting list.
-                "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
+                "field": campo sobre el que se debe recuperar la posting list, solo necesario si se hace la ampliacion de multiples indices
 
         return: posting list
 
         """
-        pass
+
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
+        
+        if (term in self.index[field]):     #If term appears in field, get the values of the term.
+            res = self.index[field][term]
+        
+        return res
 
 
 
@@ -458,11 +486,16 @@ class SAR_Project:
         return: posting list con todos los newid exceptos los contenidos en p
 
         """
-        
-        pass
+        #
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
+        
+        res = []
+        for l in range(len(self.news)):     #For each document, if it does not appear in p, add to res
+            if l not in p: res.append(l)
+        return res
+
 
 
 
@@ -478,12 +511,19 @@ class SAR_Project:
         return: posting list con los newid incluidos en p1 y p2
 
         """
-        
-        pass
+        #
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
-
+        ######################################## 
+        res = []       
+        cont1 = 0       #Pointer posting list 1
+        cont2 = 0       #Pointer posting list 2
+        while len(p1) > cont1 and len(p2) > cont2:      #While not end of p1 and p2
+            if p1[cont1] == p2[cont2]: res.append(p1[cont1]);cont1 +=1;cont2 +=1                 #If same doc, add to res
+            elif  p1[cont1] < p2[cont2]: cont1 += 1         #If not change pointer
+            else: cont2 += 1
+        
+        return res
 
 
     def or_posting(self, p1, p2):
@@ -498,12 +538,23 @@ class SAR_Project:
         return: posting list con los newid incluidos de p1 o p2
 
         """
-
-        
-        pass
+        #
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
+        
+        res = []
+        cont1 = 0       #Pointer posting list 1
+        cont2 = 0       #Pointer posting list 2
+        while len(p1) > cont1 and len(p2) > cont2:      #While not end of p1 and p2
+            if p1[cont1] == p2[cont2]: res.append(p1[cont1]);cont1 +=1;cont2 +=1         #If same doc, add to res
+            elif  p1[cont1] < p2[cont2]: res.append(p1[cont1]);cont1 += 1           #If not, add to res and move pointer
+            else: res.append(p2[cont2]);cont2 += 1
+
+        while len(p1) > cont1: res.append(p1[cont1]); cont1 += 1        #While not end of p1, add all p1 to res
+        while len(p2) > cont2: res.append(p2[cont2]); cont2 += 1        #While not end of p2, add all p2 to res
+
+        return res
 
 
     def minus_posting(self, p1, p2):
@@ -575,8 +626,10 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-
-
+        print('Query:\t' + "'" + query + "'" + '\nNumber of results: ' + str(len(result)))
+        
+        for k in range(len(result)):
+            print("#{}      ({})  ({})  ({})  {}      ({})".format(k,0,result[k],'date','Title','keywords'))
 
 
     def rank_result(self, result, query):
