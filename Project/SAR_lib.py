@@ -250,16 +250,16 @@ class SAR_Project:
         self.stemmer.stem(token) devuelve el stem del token
 
         """
-           # Recorremos todos los campos del indice de terminos
+           #Recorremos todos los campos del indice de terminos
         for field in self.index:
 
-            # Recorremos todos los terminos del campo
+            #Recorremos todos los terminos del campo
             for term in self.index[field]:
                     
-                # Si antes no hemos hecho el stemming del termino generamos el stem
+                #Si antes no hemos hecho el stemming del termino generamos el stem
                 stem = self.stemmer.stem(term)
                 
-                # Si aun no hemos añadido el stem lo añadimos  
+                #Si aun no hemos añadido el stem lo añadimos  
                 self.sindex[field][stem] = self.or_posting(self.sindex[field].get(stem, []),self.index[field][term])
         
         
@@ -271,10 +271,20 @@ class SAR_Project:
         Crea el indice permuterm (self.ptindex) para los terminos de todos los indices.
 
         """
-        pass
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
+       #Recorremos todos los campos del indice de terminos
+        for field in self.index:
+
+            Recorremos todos los terminos del campo
+            for term in self.index[field]:
+                    auxterm = term + "$"
+                    i=0
+
+                    #Generamos los terminos permuterm y actualizamos sus posting lists
+                    for l in auxterm:
+                        pterm = auxterm[i:] + auxterm[0:i]
+                        i=i+1
+                        self.ptindex[field][pterm] = self.or_posting(self.ptindex[field].get(pterm, []),self.index[field][term])
+                        self.pterms[pterm] = self.pterms.get(pterm, []) + [term]
 
     def show_stats(self):
         """
@@ -442,14 +452,14 @@ class SAR_Project:
 
         stem = self.stemmer.stem(term)
         
-         # Creamos stem del término
+         #Creamos stem del termino
         stem = self.stemmer.stem(term)
         res = []
 
-        # Búscamos si está indexado
+        #Buscamos si esta indexado
         if (stem in self.sindex[field]):
 
-            # Devolvemos la posting list asociada 
+            #Devolvemos la posting list asociada 
             res = self.sindex[field][stem]
 
         return res
@@ -468,9 +478,35 @@ class SAR_Project:
 
         """
 
-        ##################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA PERMUTERM ##
-        ##################################################
+       res = []
+        
+        #Comprobamos que la palabra comodin se incluye y cual es esa palabra
+        if("*" in term or "?" in term):
+            pterm = term + "$"
+            if "*" in pterm:
+                s = "*"
+            else:
+                s = "?"
+
+            #Permutamos hasta que el comodin este en la ultima posicion
+            while pterm[len(pterm)-1]!=s:
+                pterm = pterm[1:] + pterm[0]
+            
+            #Aqui ya tenemos la palabra que hay que buscar en el ptindex 
+            #Si s=="*"
+            if(s == "*"):
+                for element in self.ptindex[field].keys():
+                    if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1]):
+                        res = self.or_posting(res,self.ptindex[field][element])
+
+            #Si s=="?"
+            else:
+                for element in self.ptindex[field].keys():
+                    if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1] and len(element) <= (len(pterm)-1)):
+                        res = self.or_posting(res,self.ptindex[field][element])
+
+        return res
+
 
     def reverse_posting(self, p):
         """
