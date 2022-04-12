@@ -254,14 +254,13 @@ class SAR_Project:
         for field in self.index:
 
             # Recorremos todos los terminos del campo
-            for term in self.index[field]:
+            for word in self.index[field]:
 
                 # Si antes no hemos hecho el stemming del termino generamos el stem
-                stem = self.stemmer.stem(term)
+                stem = self.stemmer.stem(word)
 
                 # Si aun no hemos añadido el stem lo añadimos
-                self.sindex[field][stem] = self.or_posting(
-                    self.sindex[field].get(stem, []), self.index[field][term])
+                self.sindex[field][stem] = self.or_posting(self.sindex[field].get(stem, []), self.index[field][word])
 
     def make_permuterm(self):
         """
@@ -443,10 +442,10 @@ class SAR_Project:
 
         """
 
-        stem = self.stemmer.stem(term)
+        
 
         # Creamos stem del termino
-        stem = self.stemmer.stem(term)
+        stem = self.stemmer.stem(word)
         res = []
 
         # Buscamos si esta indexado
