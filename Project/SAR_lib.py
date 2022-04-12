@@ -7,7 +7,7 @@ import re
 class SAR_Project:
     """
     Prototipo de la clase para realizar la indexacion y la recuperacion de noticias
-        
+
         Preparada para todas las ampliaciones:
           parentesis + multiples indices + posicionales + stemming + permuterm + ranking de resultado
 
@@ -21,11 +21,9 @@ class SAR_Project:
     fields = [("title", True), ("date", False),
               ("keywords", True), ("article", True),
               ("summary", True)]
-    
-    
+
     # numero maximo de documento a mostrar cuando self.show_all es False
     SHOW_MAX = 10
-
 
     def __init__(self):
         """
@@ -36,21 +34,24 @@ class SAR_Project:
         Puedes añadir más variables si las necesitas 
 
         """
-        self.index = {} # hash para el indice invertido de terminos --> clave: termino, valor: posting list.
-                        # Si se hace la implementacion multifield, se pude hacer un segundo nivel de hashing de tal forma que:
-                        # self.index['title'] seria el indice invertido del campo 'title'.
-        self.sindex = {} # hash para el indice invertido de stems --> clave: stem, valor: lista con los terminos que tienen ese stem
-        self.ptindex = {} # hash para el indice permuterm.
-        self.docs = {} # diccionario de documentos --> clave: entero(docid),  valor: ruta del fichero.
-        self.weight = {} # hash de terminos para el pesado, ranking de resultados. puede no utilizarse
-        self.news = {} # hash de noticias --> clave entero (newid), valor: la info necesaria para diferenciar la noticia dentro de su fichero (doc_id y posición dentro del documento)
-        self.tokenizer = re.compile("\W+") # expresion regular para hacer la tokenizacion
-        self.stemmer = SnowballStemmer('spanish') # stemmer en castellano
-        self.show_all = False # valor por defecto, se cambia con self.set_showall()
-        self.show_snippet = False # valor por defecto, se cambia con self.set_snippet()
-        self.use_stemming = False # valor por defecto, se cambia con self.set_stemming()
+        self.index = {}  # hash para el indice invertido de terminos --> clave: termino, valor: posting list.
+        # Si se hace la implementacion multifield, se pude hacer un segundo nivel de hashing de tal forma que:
+        # self.index['title'] seria el indice invertido del campo 'title'.
+        self.sindex = {}  # hash para el indice invertido de stems --> clave: stem, valor: lista con los terminos que tienen ese stem
+        self.ptindex = {}  # hash para el indice permuterm.
+        # diccionario de documentos --> clave: entero(docid),  valor: ruta del fichero.
+        self.docs = {}
+        # hash de terminos para el pesado, ranking de resultados. puede no utilizarse
+        self.weight = {}
+        # hash de noticias --> clave entero (newid), valor: la info necesaria para diferenciar la noticia dentro de su fichero (doc_id y posición dentro del documento)
+        self.news = {}
+        # expresion regular para hacer la tokenizacion
+        self.tokenizer = re.compile("\W+")
+        self.stemmer = SnowballStemmer('spanish')  # stemmer en castellano
+        self.show_all = False  # valor por defecto, se cambia con self.set_showall()
+        self.show_snippet = False  # valor por defecto, se cambia con self.set_snippet()
+        self.use_stemming = False  # valor por defecto, se cambia con self.set_stemming()
         self.use_ranking = False  # valor por defecto, se cambia con self.set_ranking()
-
 
     ###############################
     ###                         ###
@@ -58,12 +59,11 @@ class SAR_Project:
     ###                         ###
     ###############################
 
-
     def set_showall(self, v):
         """
 
         Cambia el modo de mostrar los resultados.
-        
+
         input: "v" booleano.
 
         UTIL PARA TODAS LAS VERSIONES
@@ -73,12 +73,11 @@ class SAR_Project:
         """
         self.show_all = v
 
-
     def set_snippet(self, v):
         """
 
         Cambia el modo de mostrar snippet.
-        
+
         input: "v" booleano.
 
         UTIL PARA TODAS LAS VERSIONES
@@ -88,12 +87,11 @@ class SAR_Project:
         """
         self.show_snippet = v
 
-
     def set_stemming(self, v):
         """
 
         Cambia el modo de stemming por defecto.
-        
+
         input: "v" booleano.
 
         UTIL PARA LA VERSION CON STEMMING
@@ -103,12 +101,11 @@ class SAR_Project:
         """
         self.use_stemming = v
 
-
     def set_ranking(self, v):
         """
 
         Cambia el modo de ranking por defecto.
-        
+
         input: "v" booleano.
 
         UTIL PARA LA VERSION CON RANKING DE NOTICIAS
@@ -118,20 +115,16 @@ class SAR_Project:
         """
         self.use_ranking = v
 
-
-
-
     ###############################
     ###                         ###
     ###   PARTE 1: INDEXACION   ###
     ###                         ###
     ###############################
 
-
     def index_dir(self, root, **args):
         """
         NECESARIO PARA TODAS LAS VERSIONES
-        
+
         Recorre recursivamente el directorio "root" e indexa su contenido
         los argumentos adicionales "**args" solo son necesarios para las funcionalidades ampliadas
 
@@ -141,7 +134,7 @@ class SAR_Project:
         self.positional = args['positional']
         self.stemming = args['stem']
         self.permuterm = args['permuterm']
-        
+
         # multifield: self.index = {'article' : {term1: [], ...}, 'title': {term1: [], ...}}
         # in multifield if no other field is specified use 'article'
         self.index['article'] = {}
@@ -156,23 +149,20 @@ class SAR_Project:
                 if filename.endswith('.json'):
                     fullname = os.path.join(dir, filename)
                     self.index_file(fullname)
-        
+
         # debug
         # filename = '2016-01-31.json'
         # if filename.endswith('.json'):
         #     fullname = os.path.join(root, filename)
         #     self.index_file(fullname)
 
-        
         # TODO is it necessary to sort postings list?
         for word in self.index['article'].keys():
             self.index['article'][word] = sorted(self.index['article'][word])
 
-
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
         ##########################################
-        
 
     def index_file(self, filename):
         """
@@ -198,23 +188,23 @@ class SAR_Project:
             jlist = json.load(fh)
 
         #print(filename + ' ' + str(len(jlist)))
-        
+
         # a.json : [{}, {}, {}] newsid 0, 1, 2; docid 0
         # b.json : [{}, {}, {}] newsid 3, 4, 5;  docid 1
-        
+
         # Asignar a cada documento un identificador unico (docid) que sera un entero secuencial
-        # Asignar a cada noticia un identificador unico. Se debe saber a que documento (fichero) 
+        # Asignar a cada noticia un identificador unico. Se debe saber a que documento (fichero)
         # pertenece cada noticia y que posicion relativa ocupa dentro de el
         docid = len(self.docs)
         self.docs[docid] = filename
         newsid = len(self.news)
-        
+
         # for each article in the json file
         for news_pos, new in enumerate(jlist):
             # newsid is global id of an article
             # news_pos is the position of the article within the file
-            self.news[newsid] = (docid, news_pos) 
-            
+            self.news[newsid] = (docid, news_pos)
+
             if self.multifield:
                 # TODO verify: campo 'date' contiene el valor de la fecha de la noticia
                 new_date = new['date']
@@ -225,17 +215,17 @@ class SAR_Project:
                 fields = ["title", "keywords", "article", "summary"]
             else:
                 fields = ["article"]
-                
-            for field in fields:
-                words = self.tokenize(new[field]) 
 
-                for word in words: 
+            for field in fields:
+                words = self.tokenize(new[field])
+
+                for word in words:
                     if word not in self.index[field]:
                         self.index[field][word] = set()
-                    self.index[field][word].add(newsid) # posting list of news, not of docs
-            
-            newsid += 1
+                    # posting list of news, not of docs
+                    self.index[field][word].add(newsid)
 
+            newsid += 1
 
     def tokenize(self, text):
         """
@@ -251,8 +241,6 @@ class SAR_Project:
         """
         return self.tokenizer.sub(' ', text.lower()).split()
 
-
-
     def make_stemming(self):
         """
         NECESARIO PARA LA AMPLIACION DE STEMMING.
@@ -262,14 +250,20 @@ class SAR_Project:
         self.stemmer.stem(token) devuelve el stem del token
 
         """
+           # Recorremos todos los campos del indice de terminos
+        for field in self.index:
+
+            # Recorremos todos los terminos del campo
+            for term in self.index[field]:
+                    
+                # Si antes no hemos hecho el stemming del termino generamos el stem
+                stem = self.stemmer.stem(term)
+                
+                # Si aun no hemos añadido el stem lo añadimos  
+                self.sindex[field][stem] = self.or_posting(self.sindex[field].get(stem, []),self.index[field][term])
         
-        pass
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
+        
 
-
-    
     def make_permuterm(self):
         """
         NECESARIO PARA LA AMPLIACION DE PERMUTERM
@@ -282,15 +276,12 @@ class SAR_Project:
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
         ####################################################
 
-
-
-
     def show_stats(self):
         """
         NECESARIO PARA TODAS LAS VERSIONES
-        
+
         Muestra estadisticas de los indices
-        
+
         """
         fields = [f for f, _ in self.fields] if self.multifield else ['article']
 
@@ -301,37 +292,30 @@ class SAR_Project:
         print('----------------------------------------')
         print('TOKENS:')
         for field in fields:
-            print("\t# of tokens in '{}': {}".format(field, len(self.index[field])))
+            print("\t# of tokens in '{}': {}".format(
+                field, len(self.index[field])))
         print('----------------------------------------')
         if (self.permuterm):
             print('PERMUTERMS:')
             for field in fields:
-                 print("\t# of tokens in '{}': {}".format(field, len(self.ptindex[field])))
+                print("\t# of tokens in '{}': {}".format(
+                    field, len(self.ptindex[field])))
             print('----------------------------------------')
         if (self.stemming):
             print('STEMS:')
             for field in fields:
-                 print("\t# of tokens in '{}': {}".format(field, len(self.sindex[field])))
+                print("\t# of tokens in '{}': {}".format(
+                    field, len(self.sindex[field])))
             print('----------------------------------------')
-        print('Positional queries are ' +  ('' if self.positional else 'NOT ') + 'allowed.')
+        print('Positional queries are ' +
+              ('' if self.positional else 'NOT ') + 'allowed.')
         print('========================================')
-
-
-        
-
-
-
-
-
-
-
 
     ###################################
     ###                             ###
     ###   PARTE 2.1: RECUPERACION   ###
     ###                             ###
     ###################################
-
 
     def solve_query(self, query, prev={}):
         """
@@ -415,7 +399,6 @@ class SAR_Project:
         return list(res)
 
 
-
     def get_positionals(self, terms, field='article'):
         """
         NECESARIO PARA LA AMPLIACION DE POSICIONALES
@@ -433,7 +416,6 @@ class SAR_Project:
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE POSICIONALES ##
         ########################################################
 
-
     def get_stemming(self, term, field='article'):
         """
         NECESARIO PARA LA AMPLIACION DE STEMMING
@@ -446,13 +428,21 @@ class SAR_Project:
         return: posting list
 
         """
-        
+
         stem = self.stemmer.stem(term)
+        
+         # Creamos stem del término
+        stem = self.stemmer.stem(term)
+        res = []
 
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
+        # Búscamos si está indexado
+        if (stem in self.sindex[field]):
 
+            # Devolvemos la posting list asociada 
+            res = self.sindex[field][stem]
+
+        return res
+    
 
     def get_permuterm(self, term, field='article'):
         """
@@ -470,9 +460,6 @@ class SAR_Project:
         ##################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA PERMUTERM ##
         ##################################################
-
-
-
 
     def reverse_posting(self, p):
         """
@@ -492,14 +479,13 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-        
+
         res = []
-        for l in range(len(self.news)):     #For each document, if it does not appear in p, add to res
-            if l not in p: res.append(l)
+        # For each document, if it does not appear in p, add to res
+        for l in range(len(self.news)):
+            if l not in p:
+                res.append(l)
         return res
-
-
-
 
     def and_posting(self, p1, p2):
         """
@@ -516,17 +502,21 @@ class SAR_Project:
         #
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ######################################## 
-        res = []       
-        cont1 = 0       #Pointer posting list 1
-        cont2 = 0       #Pointer posting list 2
-        while len(p1) > cont1 and len(p2) > cont2:      #While not end of p1 and p2
-            if p1[cont1] == p2[cont2]: res.append(p1[cont1]);cont1 +=1;cont2 +=1                 #If same doc, add to res
-            elif  p1[cont1] < p2[cont2]: cont1 += 1         #If not change pointer
-            else: cont2 += 1
-        
-        return res
+        ########################################
+        res = []
+        cont1 = 0  # Pointer posting list 1
+        cont2 = 0  # Pointer posting list 2
+        while len(p1) > cont1 and len(p2) > cont2:  # While not end of p1 and p2
+            if p1[cont1] == p2[cont2]:
+                res.append(p1[cont1])
+                cont1 += 1
+                cont2 += 1  # If same doc, add to res
+            elif p1[cont1] < p2[cont2]:
+                cont1 += 1  # If not change pointer
+            else:
+                cont2 += 1
 
+        return res
 
     def or_posting(self, p1, p2):
         """
@@ -544,20 +534,30 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-        
-        res = []
-        cont1 = 0       #Pointer posting list 1
-        cont2 = 0       #Pointer posting list 2
-        while len(p1) > cont1 and len(p2) > cont2:      #While not end of p1 and p2
-            if p1[cont1] == p2[cont2]: res.append(p1[cont1]);cont1 +=1;cont2 +=1         #If same doc, add to res
-            elif  p1[cont1] < p2[cont2]: res.append(p1[cont1]);cont1 += 1           #If not, add to res and move pointer
-            else: res.append(p2[cont2]);cont2 += 1
 
-        while len(p1) > cont1: res.append(p1[cont1]); cont1 += 1        #While not end of p1, add all p1 to res
-        while len(p2) > cont2: res.append(p2[cont2]); cont2 += 1        #While not end of p2, add all p2 to res
+        res = []
+        cont1 = 0  # Pointer posting list 1
+        cont2 = 0  # Pointer posting list 2
+        while len(p1) > cont1 and len(p2) > cont2:  # While not end of p1 and p2
+            if p1[cont1] == p2[cont2]:
+                res.append(p1[cont1])
+                cont1 += 1
+                cont2 += 1  # If same doc, add to res
+            elif p1[cont1] < p2[cont2]:
+                res.append(p1[cont1])
+                cont1 += 1  # If not, add to res and move pointer
+            else:
+                res.append(p2[cont2])
+                cont2 += 1
+
+        while len(p1) > cont1:
+            res.append(p1[cont1])
+            cont1 += 1  # While not end of p1, add all p1 to res
+        while len(p2) > cont2:
+            res.append(p2[cont2])
+            cont2 += 1  # While not end of p2, add all p2 to res
 
         return res
-
 
     def minus_posting(self, p1, p2):
         """
@@ -573,22 +573,16 @@ class SAR_Project:
 
         """
 
-        
         pass
         ########################################################
         ## COMPLETAR PARA TODAS LAS VERSIONES SI ES NECESARIO ##
         ########################################################
-
-
-
-
 
     #####################################
     ###                               ###
     ### PARTE 2.2: MOSTRAR RESULTADOS ###
     ###                               ###
     #####################################
-
 
     def solve_and_count(self, query):
         """
@@ -605,7 +599,6 @@ class SAR_Project:
         print("%s\t%d" % (query, len(result)))
         return len(result)  # para verificar los resultados (op: -T)
 
-
     def solve_and_show(self, query):
         """
         NECESARIO PARA TODAS LAS VERSIONES
@@ -619,11 +612,11 @@ class SAR_Project:
         param:  "query": query que se debe resolver.
 
         return: el numero de noticias recuperadas, para la opcion -T
-        
+
         """
         result = self.solve_query(query)
         if self.use_ranking:
-            result = self.rank_result(result, query)   
+            result = self.rank_result(result, query)
 
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
@@ -639,6 +632,9 @@ class SAR_Project:
                 news = jlist[doc[1]]
                 print("#{}      ({})  ({})  ({})  {}      ({})".format(k,0,result[k],news['date'],news['title'],news['keywords']))
 
+        for k in range(len(result)):
+            print("#{}      ({})  ({})  ({})  {}      ({})".format(
+                k, 0, result[k], 'date', 'Title', 'keywords'))
 
     def rank_result(self, result, query):
         """
@@ -655,7 +651,7 @@ class SAR_Project:
         """
 
         pass
-        
+
         ###################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE RANKING ##
         ###################################################
