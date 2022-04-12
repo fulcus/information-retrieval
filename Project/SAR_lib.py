@@ -328,9 +328,8 @@ class SAR_Project:
             print('----------------------------------------')
         if (self.stemming):
             print('STEMS:')
-            for field in fields:
-                print("\t# of tokens in '{}': {}".format(
-                    field, len(self.sindex[field])))
+            for field in self.sindex.keys():
+                print("\t# of tokens in '{}': {}".format(field, len(self.sindex[field])))
             print('----------------------------------------')
         print('Positional queries are ' +
               ('' if self.positional else 'NOT ') + 'allowed.')
