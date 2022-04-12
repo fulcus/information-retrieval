@@ -423,12 +423,10 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-
-        # If term appears in field, get the values of the term.
-        if (term in self.index[field]):
-            res = self.index[field][term]
-
-        return list(res)
+        # If term appears in field, get the values of the term, else empty list.
+        res = self.index[field].get(term, [])
+        
+        return res
 
     def get_positionals(self, terms, field='article'):
         """
