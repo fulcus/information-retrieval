@@ -31,7 +31,7 @@ class SAR_Project:
         NECESARIO PARA LA VERSION MINIMA
 
         Incluye todas las variables necesaria para todas las ampliaciones.
-        Puedes añadir más variables si las necesitas 
+        Puedes añadir más variables si las necesitas
 
         """
         self.index = {}  # hash para el indice invertido de terminos --> clave: termino, valor: posting list.
@@ -187,7 +187,7 @@ class SAR_Project:
         with open(filename) as fh:
             jlist = json.load(fh)
 
-        #print(filename + ' ' + str(len(jlist)))
+        # print(filename + ' ' + str(len(jlist)))
 
         # a.json : [{}, {}, {}] newsid 0, 1, 2; docid 0
         # b.json : [{}, {}, {}] newsid 3, 4, 5;  docid 1
@@ -250,19 +250,18 @@ class SAR_Project:
         self.stemmer.stem(token) devuelve el stem del token
 
         """
-           #Recorremos todos los campos del indice de terminos
+        # Recorremos todos los campos del indice de terminos
         for field in self.index:
 
-            #Recorremos todos los terminos del campo
+            # Recorremos todos los terminos del campo
             for term in self.index[field]:
-                    
-                #Si antes no hemos hecho el stemming del termino generamos el stem
+
+                # Si antes no hemos hecho el stemming del termino generamos el stem
                 stem = self.stemmer.stem(term)
-                
-                #Si aun no hemos añadido el stem lo añadimos  
-                self.sindex[field][stem] = self.or_posting(self.sindex[field].get(stem, []),self.index[field][term])
-        
-        
+
+                # Si aun no hemos añadido el stem lo añadimos
+                self.sindex[field][stem] = self.or_posting(
+                    self.sindex[field].get(stem, []), self.index[field][term])
 
     def make_permuterm(self):
         """
@@ -271,20 +270,22 @@ class SAR_Project:
         Crea el indice permuterm (self.ptindex) para los terminos de todos los indices.
 
         """
-       #Recorremos todos los campos del indice de terminos
+       # Recorremos todos los campos del indice de terminos
         for field in self.index:
 
-            Recorremos todos los terminos del campo
+            # Recorremos todos los terminos del campo
             for term in self.index[field]:
-                    auxterm = term + "$"
-                    i=0
+                auxterm = term + "$"
+                i = 0
 
-                    #Generamos los terminos permuterm y actualizamos sus posting lists
-                    for l in auxterm:
-                        pterm = auxterm[i:] + auxterm[0:i]
-                        i=i+1
-                        self.ptindex[field][pterm] = self.or_posting(self.ptindex[field].get(pterm, []),self.index[field][term])
-                        self.pterms[pterm] = self.pterms.get(pterm, []) + [term]
+                # Generamos los terminos permuterm y actualizamos sus posting lists
+                for l in auxterm:
+                    pterm = auxterm[i:] + auxterm[0:i]
+                    i = i+1
+                    self.ptindex[field][pterm] = self.or_posting(
+                        self.ptindex[field].get(pterm, []), self.index[field][term])
+                    self.pterms[pterm] = self.pterms.get(
+                        pterm, []) + [term]
 
     def show_stats(self):
         """
@@ -342,50 +343,70 @@ class SAR_Project:
         return: posting list con el resultado de la query
 
         """
-        #print("idx query", self.index['article'])
+        # print("idx query", self.index['article'])
         if query is None or len(query) == 0:
             return []
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-        query = query.lower()           #To lowercase
-        query_split = query.split(' ')      #Split query by terms
-        
-        if query_split[0] == 'not': n=2;prev = self.reverse_posting(self.get_posting_by_fields(query_split[1]))          #If first term a NOT, get the postinglist of NOT term
-        else: n=1;prev = self.get_posting_by_fields(query_split[0])                                       #If not, get the posting list of the first term
+        query = query.lower()  # To lowercase
+        query_split = query.split(' ')  # Split query by terms
 
-        return self.solve_query_by_term(query_split[n:], prev)                      #Call recursive function
+        if query_split[0] == 'not':
+            n = 2
+            prev = self.reverse_posting(self.get_posting_by_fields(
+                query_split[1]))  # If first term a NOT, get the postinglist of NOT term
+        # If not, get the posting list of the first term
+        else:
+            n = 1
+            prev = self.get_posting_by_fields(query_split[0])
 
+        # Call recursive function
+        return self.solve_query_by_term(query_split[n:], prev)
 
-
-    def solve_query_by_term(self, query, prev):                                     #Recursive function
-        if len(query) == 0: return prev         #Base case
-        else:                                   #Recursive case
-            t2 = {}                             #Var fot postinglist of term2
-            if query[0] == 'and':   #If AND
-                if query[1] == 'not': n=3;t2 = self.reverse_posting(self.get_posting_by_fields(query[2]))  #If term2 needs to be NOT
-                else: n=2;t2 = self.get_posting_by_fields(query[1])        
-                prev = self.and_posting(prev, t2)           #Get postinglist of prev AND t2
+    def solve_query_by_term(self, query, prev):  # Recursive function
+        if len(query) == 0:
+            return prev  # Base case
+        else:  # Recursive case
+            t2 = {}  # Var fot postinglist of term2
+            if query[0] == 'and':  # If AND
+                if query[1] == 'not':
+                    n = 3
+                    t2 = self.reverse_posting(
+                        self.get_posting_by_fields(query[2]))  # If term2 needs to be NOT
+                else:
+                    n = 2
+                    t2 = self.get_posting_by_fields(query[1])
+                # Get postinglist of prev AND t2
+                prev = self.and_posting(prev, t2)
                 return self.solve_query_by_term(query[n:], prev)
 
-            elif query[0] == 'or':     #If OR
-                if query[1] == 'not': n=3;t2 = self.reverse_posting(self.get_posting_by_fields(query[2]))  #If term2 needs to be NOT
-                else: n=2;t2 = self.get_posting_by_fields(query[1])
-                prev = self.or_posting(prev, t2)             #Get postinglist of prev OR t2
+            elif query[0] == 'or':  # If OR
+                if query[1] == 'not':
+                    n = 3
+                    t2 = self.reverse_posting(
+                        self.get_posting_by_fields(query[2]))  # If term2 needs to be NOT
+                else:
+                    n = 2
+                    t2 = self.get_posting_by_fields(query[1])
+                # Get postinglist of prev OR t2
+                prev = self.or_posting(prev, t2)
                 return self.solve_query_by_term(query[n:], prev)
 
+    # Method that returns postinglist of article if term is passed, or term of sprecific field if 'field:term' is passed
 
-    #Method that returns postinglist of article if term is passed, or term of sprecific field if 'field:term' is passed
     def get_posting_by_fields(self, term):
-        if ':' in term: res = term.split(':'); return self.get_posting(res[1],res[0])
-        else: return self.get_posting(term) 
-
+        if ':' in term:
+            res = term.split(':')
+            return self.get_posting(res[1], res[0])
+        else:
+            return self.get_posting(term)
 
     def get_posting(self, term, field='article'):
         """
         NECESARIO PARA TODAS LAS VERSIONES
 
-        Devuelve la posting list asociada a un termino. 
+        Devuelve la posting list asociada a un termino.
         Dependiendo de las ampliaciones implementadas "get_posting" puede llamar a:
             - self.get_positionals: para la ampliacion de posicionales
             - self.get_permuterm: para la ampliacion de permuterms
@@ -402,12 +423,12 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-        
-        if (term in self.index[field]):     #If term appears in field, get the values of the term.
-            res = self.index[field][term]
-        
-        return list(res)
 
+        # If term appears in field, get the values of the term.
+        if (term in self.index[field]):
+            res = self.index[field][term]
+
+        return list(res)
 
     def get_positionals(self, terms, field='article'):
         """
@@ -440,19 +461,18 @@ class SAR_Project:
         """
 
         stem = self.stemmer.stem(term)
-        
-         #Creamos stem del termino
+
+        # Creamos stem del termino
         stem = self.stemmer.stem(term)
         res = []
 
-        #Buscamos si esta indexado
+        # Buscamos si esta indexado
         if (stem in self.sindex[field]):
 
-            #Devolvemos la posting list asociada 
+            # Devolvemos la posting list asociada
             res = self.sindex[field][stem]
 
         return res
-    
 
     def get_permuterm(self, term, field='article'):
         """
@@ -467,9 +487,9 @@ class SAR_Project:
 
         """
 
-       res = []
-        
-        #Comprobamos que la palabra comodin se incluye y cual es esa palabra
+        res = []
+
+        # Comprobamos que la palabra comodin se incluye y cual es esa palabra
         if("*" in term or "?" in term):
             pterm = term + "$"
             if "*" in pterm:
@@ -477,25 +497,26 @@ class SAR_Project:
             else:
                 s = "?"
 
-            #Permutamos hasta que el comodin este en la ultima posicion
-            while pterm[len(pterm)-1]!=s:
+            # Permutamos hasta que el comodin este en la ultima posicion
+            while pterm[len(pterm)-1] != s:
                 pterm = pterm[1:] + pterm[0]
-            
-            #Aqui ya tenemos la palabra que hay que buscar en el ptindex 
-            #Si s=="*"
+
+            # Aqui ya tenemos la palabra que hay que buscar en el ptindex
+            # Si s=="*"
             if(s == "*"):
                 for element in self.ptindex[field].keys():
                     if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1]):
-                        res = self.or_posting(res,self.ptindex[field][element])
+                        res = self.or_posting(
+                            res, self.ptindex[field][element])
 
-            #Si s=="?"
+            # Si s=="?"
             else:
                 for element in self.ptindex[field].keys():
                     if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1] and len(element) <= (len(pterm)-1)):
-                        res = self.or_posting(res,self.ptindex[field][element])
+                        res = self.or_posting(
+                            res, self.ptindex[field][element])
 
         return res
-
 
     def reverse_posting(self, p):
         """
@@ -657,8 +678,9 @@ class SAR_Project:
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-        print('Query:\t' + "'" + query + "'" + '\nNumber of results: ' + str(len(result)))
-        
+        print('Query:\t' + "'" + query + "'" +
+              '\nNumber of results: ' + str(len(result)))
+
         if self.multifield:
             for k in range(len(result)):
                 doc = self.news[result[k]]
@@ -666,7 +688,8 @@ class SAR_Project:
                 with open(filename) as fh:
                     jlist = json.load(fh)
                 news = jlist[doc[1]]
-                print("#{}      ({})  ({})  ({})  {}      ({})".format(k,0,result[k],news['date'],news['title'],news['keywords']))
+                print("#{}      ({})  ({})  ({})  {}      ({})".format(
+                    k, 0, result[k], news['date'], news['title'], news['keywords']))
 
         for k in range(len(result)):
             print("#{}      ({})  ({})  ({})  {}      ({})".format(
