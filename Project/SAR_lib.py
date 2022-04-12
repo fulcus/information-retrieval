@@ -52,6 +52,9 @@ class SAR_Project:
         self.show_snippet = False  # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False  # valor por defecto, se cambia con self.set_stemming()
         self.use_ranking = False  # valor por defecto, se cambia con self.set_ranking()
+        self.sterms = {} # hash para el indice invertido de stems --> clave: stem, valor: lista con los terminos que tienen ese stem
+        self.term_field = {} # términos en la query y aque campo pertenecen --> clave: término, valor: campo (field)
+
 
     ###############################
     ###                         ###
@@ -143,7 +146,13 @@ class SAR_Project:
             self.index['summary'] = {}
             self.index['keywords'] = {}
             self.index['date'] = {}
-
+            if self.stemming:
+                self.sindex = {'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}}
+                
+            
+            
+            
+            
         for dir, subdirs, files in os.walk(root):
             for filename in files:
                 if filename.endswith('.json'):
@@ -204,22 +213,43 @@ class SAR_Project:
             # newsid is global id of an article
             # news_pos is the position of the article within the file
             self.news[newsid] = (docid, news_pos)
+            for field in self.index.keys():
+                
+                #Diccionario para stemming
+                stems = {}
 
-            if self.multifield:
+                terms = {}
+
+                if self.multifield:
                 # TODO verify: campo 'date' contiene el valor de la fecha de la noticia
                 new_date = new['date']
-                if new_date not in self.index['date']:
+                    if new_date not in self.index['date']:
                     self.index['date'][new_date] = [newsid]
-                else:
+                    else:
                     self.index['date'][new_date].append(newsid)
-                fields = ["title", "keywords", "article", "summary"]
-            else:
-                fields = ["article"]
+                    fields = ["title", "keywords", "article", "summary"]
+                else:
+                    fields = ["article"]
 
             for field in fields:
                 words = self.tokenize(new[field])
 
                 for word in words:
+                     if self.stemming and word not in terms:
+                        stem = self.stemmer.stem(word)
+
+                        #Añadimos el stem si no esta en el diccionario
+                        if stem not in self.sterms:
+                            self.sterms[stem] = []
+
+                        #Añadimos el termino si no esta en la lista de terminos asociados 
+                        if term not in self.sterms[stem]:
+                            self.sterms[stem] = self.sterms.get(stem, []) + [word]
+
+                        if stem not in stems:
+                            #Añadimos el stem si no lo hemos añadido aun
+                            self.sindex[field][stem] = self.sindex[field].get(stem, []) + [newsid]
+                            stems[stem] = True
                     if word not in self.index[field]:
                         self.index[field][word] = set()
                     # posting list of news, not of docs
@@ -403,10 +433,11 @@ class SAR_Project:
         return: posting list
 
         """
-
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        
+        #Comprobamos si se debe realizar stemming
+        elif (self.use_stemming):
+            res = self.get_stemming(word, field)
+        
         # If term appears in field, get the values of the term, else empty list.
         res = self.index[field].get(term, [])
         
