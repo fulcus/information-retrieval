@@ -357,8 +357,8 @@ class SAR_Project:
         query = query.lower()           #To lowercase
         query_split = query.split(' ')      #Split query by terms
         
-        if query_split[0] == 'not': n=2;prev = self.reverse_posting(self.get_posting(query_split[1]))          #If first term a NOT, get the postinglist of NOT term
-        else: n=1;prev = self.get_posting(query_split[0])                                       #If not, get the posting list of the first term
+        if query_split[0] == 'not': n=2;prev = self.reverse_posting(self.get_posting_by_fields(query_split[1]))          #If first term a NOT, get the postinglist of NOT term
+        else: n=1;prev = self.get_posting_by_fields(query_split[0])                                       #If not, get the posting list of the first term
 
         return self.solve_query_by_term(query_split[n:], prev)                      #Call recursive function
 
@@ -369,19 +369,22 @@ class SAR_Project:
         else:                                   #Recursive case
             t2 = {}                             #Var fot postinglist of term2
             if query[0] == 'and':   #If AND
-                if query[1] == 'not': n=3;t2 = self.reverse_posting(self.get_posting(query[2]))  #If term2 needs to be NOT
-                else: n=2;t2 = self.get_posting(query[1])        
+                if query[1] == 'not': n=3;t2 = self.reverse_posting(self.get_posting_by_fields(query[2]))  #If term2 needs to be NOT
+                else: n=2;t2 = self.get_posting_by_fields(query[1])        
                 prev = self.and_posting(prev, t2)           #Get postinglist of prev AND t2
                 return self.solve_query_by_term(query[n:], prev)
 
             elif query[0] == 'or':     #If OR
-                if query[1] == 'not': n=3;t2 = self.reverse_posting(self.get_posting(query[2]))  #If term2 needs to be NOT
-                else: n=2;t2 = self.get_posting(query[1])
+                if query[1] == 'not': n=3;t2 = self.reverse_posting(self.get_posting_by_fields(query[2]))  #If term2 needs to be NOT
+                else: n=2;t2 = self.get_posting_by_fields(query[1])
                 prev = self.or_posting(prev, t2)             #Get postinglist of prev OR t2
                 return self.solve_query_by_term(query[n:], prev)
 
 
- 
+    #Method that returns postinglist of article if term is passed, or term of sprecific field if 'field:term' is passed
+    def get_posting_by_fields(self, term):
+        if ':' in term: res = term.split(':'); return self.get_posting(res[1],res[0])
+        else: return self.get_posting(term) 
 
 
     def get_posting(self, term, field='article'):
@@ -409,7 +412,7 @@ class SAR_Project:
         if (term in self.index[field]):     #If term appears in field, get the values of the term.
             res = self.index[field][term]
         
-        return res
+        return list(res)
 
 
 
@@ -627,8 +630,14 @@ class SAR_Project:
         ########################################
         print('Query:\t' + "'" + query + "'" + '\nNumber of results: ' + str(len(result)))
         
-        for k in range(len(result)):
-            print("#{}      ({})  ({})  ({})  {}      ({})".format(k,0,result[k],'date','Title','keywords'))
+        if self.multifield:
+            for k in range(len(result)):
+                doc = self.news[result[k]]
+                filename = self.docs[doc[0]]
+                with open(filename) as fh:
+                    jlist = json.load(fh)
+                news = jlist[doc[1]]
+                print("#{}      ({})  ({})  ({})  {}      ({})".format(k,0,result[k],news['date'],news['title'],news['keywords']))
 
 
     def rank_result(self, result, query):
