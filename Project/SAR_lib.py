@@ -229,10 +229,10 @@ class SAR_Project:
         newsindex = len(self.news)
         newsposition = 0
 
-        # Por cada noticia que encontremos en el fichero json
+        # Por cada noticia del fichero json
         for doc in jlist:  
             
-            # Fijar entrada del diccionario news
+            # entrada del diccionario news
             self.news[newsindex] = {
                 'docid': docid,
                 'position': newsposition
@@ -255,27 +255,27 @@ class SAR_Project:
                 # Por cada término del campo de la noticia    
                 for term in termList:
 
-                    # Versión eficiente de stemming
-                    # Si está activada la opción y el término no lo hemos añadido todavís continuamos
+                    # Versión stemming
+                    # Continuamos si esta activada la accion y el termino no se ha añadido todavia
                     if self.stemming and term not in terms:
                         stem = self.stemmer.stem(term)
 
-                        # Si el stem aún no está en el diccionario, lo añadimos
+                        # Añadimos el stem si aun no esta en el diccionario
                         if stem not in self.sterms:
                             self.sterms[stem] = []
 
-                        # Si el término aún no está en la lista de términos asociaodos, lo añadimos
+                        # Añadimos el termino si no esta en la lista de terminos asociados
                         if term not in self.sterms[stem]:
                             self.sterms[stem] = self.sterms.get(stem, []) + [term]
 
                         if stem not in stems:
-                            # Añadimos el stem si no lo hemos añadido todavía
+                            # Si no hemos añadido el estem lo añadimos
                             self.sindex[field][stem] = self.sindex[field].get(stem, []) + [newsindex]
                             stems[stem] = True
                     #-------------------------------
                     
-                    # Versión eficiente de permuterm
-                    # Si está activada la opción y el término no lo hemos añadido todavís continuamos
+                    # Versión  permuterm
+                    # Continuamos si esta activada la accion y el termino no se ha añadido todavia Continuamos si esta activada la accion y el termino no se ha añadido todavia
                     if self.permuterm and term not in terms:
                         auxterm = term + "$"
 
@@ -283,24 +283,24 @@ class SAR_Project:
                         for i in range(len(auxterm)):
                             self.ptindex[field][auxterm] = self.ptindex[field].get(auxterm, []) + [newsindex]
 
-                            # Si el permuterm aún no está en el diccionario, lo añadimos
+                            # Añadimos el permuterm si no esta en el diccionario
                             if auxterm not in self.pterms:
                                 self.pterms[auxterm] = []
 
-                            # Si el término aún no está en la lista de términos asociaodos, lo añadimos
+                            # Añadimos el termino si no esta en la lista de terminos asociados
                             if term not in self.pterms[auxterm]:
                                 self.pterms[auxterm] = self.pterms.get(auxterm, []) + [term]
                             auxterm = auxterm[1:] + auxterm[0]
                     #-------------------------------
 
                     if term not in terms:
-                        # Añadir término a la posting list si no lo hemos añadido todavía
+                        # Añadir término a la posting list si no lo hemos añadido
                         self.index[field][term] = self.index[field].get(term, []) + [newsindex]
                         terms[term] = True
 
                         self.weight[field][term] = self.weight[field].get(term,{})
                     
-                    # Se añade la frecuencia del término en el documento y campo en concreto
+                    # Aadimos la frecuencia del término en el documento y el campo en concreto
                     self.weight[field][term][newsindex] = self.weight[field][term].get(newsindex,0) + 1
 
             
@@ -590,7 +590,7 @@ class SAR_Project:
         """
         res = []
         
-        #Comprobamos que se incluye la palabra comodín y cuál es
+        # Comprobamos que se incluye la palabra comodín y cuál es
         if("*" in term or "?" in term):
             pterm = term + "$"
             if "*" in pterm:
@@ -598,18 +598,18 @@ class SAR_Project:
             else:
                 s = "?"
 
-            #Realizamos permutaciones hasta que el carácter comodín se encuentra en la última posición
+            # Se hacen permutaciones hasta que el carácter comodín se encuentra en la última posición
             while pterm[len(pterm)-1]!=s:
                 pterm = pterm[1:] + pterm[0]
             
-            #Llegados a este punto ya tenemos la palabra que debemos buscar en ptindex
-            #Si s=="*"
+            #Aqui ya tenemos la palabra que se debe buscar en el ptindex
+            
             if(s == "*"):
                 for element in self.ptindex[field].keys():
                     if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1]):
                         res = self.or_posting(res,self.ptindex[field][element])
 
-            #Si s=="?"
+            #Si s == "?"
             else:
                 for element in self.ptindex[field].keys():
                     if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1] and len(element) <= (len(pterm)-1)):
