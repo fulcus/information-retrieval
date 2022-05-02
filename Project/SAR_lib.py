@@ -52,6 +52,8 @@ class SAR_Project:
         self.show_snippet = False  # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False  # valor por defecto, se cambia con self.set_stemming()
         self.use_ranking = False  # valor por defecto, se cambia con self.set_ranking()
+        self.N = 0 # Número de documentos en la colección
+        self.pterms = {}  # hash para el indice invertido permuterm --> clave: permuterm, valor: lista con los terminos que tienen ese permuterm
         self.sterms = {} # hash para el indice invertido de stems --> clave: stem, valor: lista con los terminos que tienen ese stem
         self.term_field = {} # términos en la query y aque campo pertenecen --> clave: término, valor: campo (field)
 
@@ -140,18 +142,37 @@ class SAR_Project:
 
         # multifield: self.index = {'article' : {term1: [], ...}, 'title': {term1: [], ...}}
         # in multifield if no other field is specified use 'article'
-        self.index['article'] = {}
         if self.multifield:
-            self.index['title'] = {}
-            self.index['summary'] = {}
-            self.index['keywords'] = {}
-            self.index['date'] = {}
+            # Indexar diversos campos
+            self.index = {
+                'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}
+            }
+            self.weight = {
+                'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}
+            }
             if self.stemming:
-                self.sindex = {'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}}
-                
-            
-            
-            
+                self.sindex = {
+                    'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}
+                }
+            if self.permuterm:
+                self.ptindex = {
+                    'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}
+                }
+        else:
+            self.index = {
+                'article': {}
+            }
+            self.weight = {
+                'article': {}
+            }
+            if self.stemming:
+                self.sindex = {
+                    'article': {}
+                }
+            if self.permuterm:
+                self.ptindex = {
+                    'article': {}
+                }
             
         for dir, subdirs, files in os.walk(root):
             for filename in files:
@@ -165,9 +186,7 @@ class SAR_Project:
         #     fullname = os.path.join(root, filename)
         #     self.index_file(fullname)
 
-        # TODO is it necessary to sort postings list?
-        for word in self.index['article'].keys():
-            self.index['article'][word] = sorted(self.index['article'][word])
+        
 
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
@@ -196,66 +215,106 @@ class SAR_Project:
         with open(filename) as fh:
             jlist = json.load(fh)
 
-        # print(filename + ' ' + str(len(jlist)))
-
-        # a.json : [{}, {}, {}] newsid 0, 1, 2; docid 0
-        # b.json : [{}, {}, {}] newsid 3, 4, 5;  docid 1
-
-        # Asignar a cada documento un identificador unico (docid) que sera un entero secuencial
-        # Asignar a cada noticia un identificador unico. Se debe saber a que documento (fichero)
-        # pertenece cada noticia y que posicion relativa ocupa dentro de el
+        #
+        # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
+        # cada noticia es un diccionario con los campos:
+        #      "title", "date", "keywords", "article", "summary"
+        #
+        # En la version basica solo se debe indexar el contenido "article"
+        #
+        #
+        #
         docid = len(self.docs)
-        self.docs[docid] = filename
-        newsid = len(self.news)
+        self.docs[docid] = filename # Fijar entrada del diccionario docs
+        newsindex = len(self.news)
+        newsposition = 0
 
-        # for each article in the json file
-        for news_pos, new in enumerate(jlist):
-            # newsid is global id of an article
-            # news_pos is the position of the article within the file
-            self.news[newsid] = (docid, news_pos)
+        # Por cada noticia que encontremos en el fichero json
+        for doc in jlist:  
+            
+            # Fijar entrada del diccionario news
+            self.news[newsindex] = {
+                'docid': docid,
+                'position': newsposition
+            }
+
+            # Por cada campo de la noticia
             for field in self.index.keys():
                 
                 #Diccionario para stemming
                 stems = {}
 
                 terms = {}
-
                 if self.multifield:
-                # TODO verify: campo 'date' contiene el valor de la fecha de la noticia
-                new_date = new['date']
-                    if new_date not in self.index['date']:
-                    self.index['date'][new_date] = [newsid]
+                    if [item for item in self.fields if item[0] == field][0][1]:
+                        termList = self.tokenize(doc[field])
                     else:
-                    self.index['date'][new_date].append(newsid)
-                    fields = ["title", "keywords", "article", "summary"]
+                        termList = [doc[field]]
                 else:
-                    fields = ["article"]
+                    termList = self.tokenize(doc[field])
+                # Por cada término del campo de la noticia    
+                for term in termList:
 
-            for field in fields:
-                words = self.tokenize(new[field])
+                    # Versión eficiente de stemming
+                    # Si está activada la opción y el término no lo hemos añadido todavís continuamos
+                    if self.stemming and term not in terms:
+                        stem = self.stemmer.stem(term)
 
-                for word in words:
-                     if self.stemming and word not in terms:
-                        stem = self.stemmer.stem(word)
-
-                        #Añadimos el stem si no esta en el diccionario
+                        # Si el stem aún no está en el diccionario, lo añadimos
                         if stem not in self.sterms:
                             self.sterms[stem] = []
 
-                        #Añadimos el termino si no esta en la lista de terminos asociados 
+                        # Si el término aún no está en la lista de términos asociaodos, lo añadimos
                         if term not in self.sterms[stem]:
-                            self.sterms[stem] = self.sterms.get(stem, []) + [word]
+                            self.sterms[stem] = self.sterms.get(stem, []) + [term]
 
                         if stem not in stems:
-                            #Añadimos el stem si no lo hemos añadido aun
-                            self.sindex[field][stem] = self.sindex[field].get(stem, []) + [newsid]
+                            # Añadimos el stem si no lo hemos añadido todavía
+                            self.sindex[field][stem] = self.sindex[field].get(stem, []) + [newsindex]
                             stems[stem] = True
-                    if word not in self.index[field]:
-                        self.index[field][word] = set()
-                    # posting list of news, not of docs
-                    self.index[field][word].add(newsid)
+                    #-------------------------------
+                    
+                    # Versión eficiente de permuterm
+                    # Si está activada la opción y el término no lo hemos añadido todavís continuamos
+                    if self.permuterm and term not in terms:
+                        auxterm = term + "$"
 
-            newsid += 1
+                        # Generamos los términos permuterm y actualizamos sus posting lists
+                        for i in range(len(auxterm)):
+                            self.ptindex[field][auxterm] = self.ptindex[field].get(auxterm, []) + [newsindex]
+
+                            # Si el permuterm aún no está en el diccionario, lo añadimos
+                            if auxterm not in self.pterms:
+                                self.pterms[auxterm] = []
+
+                            # Si el término aún no está en la lista de términos asociaodos, lo añadimos
+                            if term not in self.pterms[auxterm]:
+                                self.pterms[auxterm] = self.pterms.get(auxterm, []) + [term]
+                            auxterm = auxterm[1:] + auxterm[0]
+                    #-------------------------------
+
+                    if term not in terms:
+                        # Añadir término a la posting list si no lo hemos añadido todavía
+                        self.index[field][term] = self.index[field].get(term, []) + [newsindex]
+                        terms[term] = True
+
+                        self.weight[field][term] = self.weight[field].get(term,{})
+                    
+                    # Se añade la frecuencia del término en el documento y campo en concreto
+                    self.weight[field][term][newsindex] = self.weight[field][term].get(newsindex,0) + 1
+
+            
+            # Incrementar índice de la notícia
+            newsindex += 1
+            newsposition += 1
+        
+        # Número de noticias en la colección
+        self.N = newsindex - 1
+
+
+
+        
+            
 
     def tokenize(self, text):
         """
@@ -284,13 +343,13 @@ class SAR_Project:
         for field in self.index:
 
             # Recorremos todos los terminos del campo
-            for word in self.index[field]:
+            for term in self.index[field]:
 
                 # Si antes no hemos hecho el stemming del termino generamos el stem
-                stem = self.stemmer.stem(word)
+                stem = self.stemmer.stem(term)
 
                 # Si aun no hemos añadido el stem lo añadimos
-                self.sindex[field][stem] = self.or_posting(self.sindex[field].get(stem, []), self.index[field][word])
+                self.sindex[field][stem] = self.or_posting(self.sindex[field].get(stem, []), self.index[field][term])
 
     def make_permuterm(self):
         """
@@ -298,8 +357,23 @@ class SAR_Project:
 
         Crea el indice permuterm (self.ptindex) para los terminos de todos los indices.
 
-        """
-      
+       """
+
+       # Recorremos todos los campos del índice de términos
+        for field in self.index:
+
+            # Recorremos todos los términos del campo
+            for term in self.index[field]:
+                    auxterm = term + "$"
+                    i=0
+
+                    # Generamos los términos permuterm y actualizamos sus posting lists
+                    for l in auxterm:
+                        pterm = auxterm[i:] + auxterm[0:i]
+                        i=i+1
+                        self.ptindex[field][pterm] = self.or_posting(self.ptindex[field].get(pterm, []),self.index[field][term])
+                        self.pterms[pterm] = self.pterms.get(pterm, []) + [term]
+
 
     def show_stats(self):
         """
@@ -308,28 +382,24 @@ class SAR_Project:
         Muestra estadisticas de los indices
 
         """
-        fields = [f for f, _ in self.fields] if self.multifield else ['article']
-
         print('========================================')
         print('Number of indexed days: {}'.format(len(self.docs)))
         print('----------------------------------------')
         print('Number of indexed news: {}'.format(len(self.news)))
         print('----------------------------------------')
         print('TOKENS:')
-        for field in fields:
-            print("\t# of tokens in '{}': {}".format(
-                field, len(self.index[field])))
+        for field in self.index.keys():
+            print("\t# of tokens in '{}': {}".format(field, len(self.index[field])))
         print('----------------------------------------')
         if (self.permuterm):
             print('PERMUTERMS:')
-            for field in fields:
-                print("\t# of tokens in '{}': {}".format(
-                    field, len(self.ptindex[field])))
+            for field in self.ptindex.keys():
+                 print("\t# of permuterms in '{}': {}".format(field, len(self.ptindex[field])))
             print('----------------------------------------')
         if (self.stemming):
             print('STEMS:')
             for field in self.sindex.keys():
-                print("\t# of tokens in '{}': {}".format(field, len(self.sindex[field])))
+                 print("\t# of stems in '{}': {}".format(field, len(self.sindex[field])))
             print('----------------------------------------')
         print('Positional queries are ' +
               ('' if self.positional else 'NOT ') + 'allowed.')
@@ -432,15 +502,32 @@ class SAR_Project:
         return: posting list
 
         """
-        
+     
+        termAux = term
+
+        # Se añade el término y campo de la consulta para el ránking
+        self.term_field[(termAux, field)] = True
+
+        res = []
+
+        #Comprobamos si se debe realizar permuterms
+        if ("*" in termAux or "?" in termAux):
+            res = self.get_permuterm(termAux,field)
+
+
         #Comprobamos si se debe realizar stemming
         elif (self.use_stemming):
-            res = self.get_stemming(word, field)
-        
-        # If term appears in field, get the values of the term, else empty list.
-        res = self.index[field].get(term, [])
-        
+            res = self.get_stemming(term, field)
+
+        #Caso estándar
+        elif (termAux in self.index[field]):
+            res = self.index[field][termAux]
         return res
+
+        
+        
+        
+        
 
     def get_positionals(self, terms, field='article'):
         """
@@ -475,7 +562,7 @@ class SAR_Project:
         
 
         # Creamos stem del termino
-        stem = self.stemmer.stem(word)
+        stem = self.stemmer.stem(term)
         res = []
 
         # Buscamos si esta indexado
@@ -485,6 +572,9 @@ class SAR_Project:
             res = self.sindex[field][stem]
 
         return res
+
+
+   
 
     def get_permuterm(self, term, field='article'):
         """
@@ -498,6 +588,35 @@ class SAR_Project:
         return: posting list
 
         """
+        res = []
+        
+        #Comprobamos que se incluye la palabra comodín y cuál es
+        if("*" in term or "?" in term):
+            pterm = term + "$"
+            if "*" in pterm:
+                s = "*"
+            else:
+                s = "?"
+
+            #Realizamos permutaciones hasta que el carácter comodín se encuentra en la última posición
+            while pterm[len(pterm)-1]!=s:
+                pterm = pterm[1:] + pterm[0]
+            
+            #Llegados a este punto ya tenemos la palabra que debemos buscar en ptindex
+            #Si s=="*"
+            if(s == "*"):
+                for element in self.ptindex[field].keys():
+                    if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1]):
+                        res = self.or_posting(res,self.ptindex[field][element])
+
+            #Si s=="?"
+            else:
+                for element in self.ptindex[field].keys():
+                    if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1] and len(element) <= (len(pterm)-1)):
+                        res = self.or_posting(res,self.ptindex[field][element])
+
+        return res
+
 
         
     def reverse_posting(self, p):
@@ -695,4 +814,4 @@ class SAR_Project:
 
         ###################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE RANKING ##
-        ###################################################
+        ##################################################|
