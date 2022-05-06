@@ -2,6 +2,7 @@ import json
 from nltk.stem.snowball import SnowballStemmer
 import os
 import re
+import math #ranking
 
 
 class SAR_Project:
@@ -809,9 +810,59 @@ class SAR_Project:
         return: la lista de resultados ordenada
 
         """
+        #Devolveremos las noticias ordenadas en función de su relevancia
+        #Pesado tf*idf
+        #En caso de utilizar stemming tendremos en cuenta el uso de stems
+        
+        terminos = {} #terminos de la query
+        pesado = [] #pesado de los docs
+        
+        for tupla in query.keys():
+            #de cada tupla de la query sacamos termino y campo
+            termino = tupla[0]
+            campo = tupla[1]
+            #En caso normal añadimos termino y campo a los terminos de la query
+            #En caso de usar stemming añadimos derivs y campo
+            
+            #Caso stemming
+            if self.use_stemming:
+                stemmings = self.sterms[self.stemmer.stem(termino)] 
+                for t in stemmmings:
+                    terminos[(t, campo)] = True
+            #Caso básico      
+            else:
+                terminos[(termino, campo)]
+        
+        for noticia in result:
+            peso_not = 0 #peso de esta noticia
+            
+            for tupla in terminos:
+                termino = tupla[0]
+                campo = tupla[1]
+                #por cada término calculamos su peso
+                
+                ftd = self.weight[campo][termino].get(noticia,0) #frecuencia del término
+                #Calculo del pesado de la frecuencia del término por pesado log
+                if ftd > 0:
+                    tf = 1 + math.log10(ftd)
+                else:
+                    tf = 0
+                
+                #número de documentos que contienen el término
+                df = len(self.weight[campo][termino]) 
+                #Calculo de la frecuencia del documento inversa de t
+                idf = math.log10(self.N/df)
+                
+                peso_term = tf * idf #peso del término
+                peso_not += peso_term #Sumamos al peso de la noticia el peso de cada término 
+            
+            #añadimos el pesado de la noticia al rank de pesados
+            pesado.append(peso_not)
+            
+        #Ordenamos las noticias por la lista de pesados
+        aux = zip(pesado,result)
+        rank = [x for _,x in sorted(aux, reverse=True)]
+        
+        return rank
 
-        pass
-
-        ###################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE RANKING ##
-        ##################################################|
+        
