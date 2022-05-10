@@ -145,20 +145,29 @@ class SAR_Project:
         # in multifield if no other field is specified use 'article'
         if self.multifield:
             # Indexar diversos campos
-            self.index = {
-                'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}
-            }
-            self.weight = {
-                'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}
-            }
+            self.index['title'] = {}
+            self.index['date'] = {}
+            self.index['keywords'] = {}
+            self.index['article'] = {}
+            self.index['summary'] = {}
+
+            self.weight['title'] = {}
+            self.weight['date'] = {}
+            self.weight['keywords'] = {}
+            self.weight['article'] = {}
+            self.weight['summary'] = {}
             if self.stemming:
-                self.sindex = {
-                    'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}
-                }
+                self.sindex['title'] = {}
+                self.sindex['date'] = {}
+                self.sindex['keywords'] = {}
+                self.sindex['article'] = {}
+                self.sindex['summary'] = {}
             if self.permuterm:
-                self.ptindex = {
-                    'title': {}, 'date': {}, 'keywords': {}, 'article': {}, 'summary': {}
-                }
+                self.ptindex['title'] = {}
+                self.ptindex['date'] = {}
+                self.ptindex['keywords'] = {}
+                self.ptindex['article'] = {}
+                self.ptindex['summary'] = {}
         else:
             self.index = {
                 'article': {}
