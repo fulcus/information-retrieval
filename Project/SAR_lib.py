@@ -201,7 +201,7 @@ class SAR_Project:
         news_pos = 0
 
         # Por cada noticia del fichero json
-        for doc in jlist:  
+        for new in jlist:  
             
             # entrada del diccionario news
             self.news[newsid] = {
@@ -218,11 +218,11 @@ class SAR_Project:
                 terms = {}
                 if self.multifield:
                     if [item for item in self.fields if item[0] == field][0][1]:
-                        words = self.tokenize(doc[field])
+                        words = self.tokenize(new[field])
                     else:
-                        words = [doc[field]]
+                        words = [new[field]]
                 else:
-                    words = self.tokenize(doc[field])
+                    words = self.tokenize(new[field])
                 # Por cada término del campo de la noticia    
                 for word in words:
 
