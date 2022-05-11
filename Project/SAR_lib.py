@@ -588,32 +588,40 @@ class SAR_Project:
         return: posting list
 
         """
-        res = []
         
         # Comprobamos que se incluye la palabra comodín y cuál es
-        if("*" in term or "?" in term):
-            pterm = term + "$"
-            if "*" in pterm:
-                s = "*"
-            else:
-                s = "?"
+        if "*" in term:
+            s = "*"
+        elif "?" in term:
+            s = "?"
+        else:
+            return []
+        
+        res = []
+        pterm = term + "$"
 
-            # Se hacen permutaciones hasta que el carácter comodín se encuentra en la última posición
-            while pterm[len(pterm)-1]!=s:
-                pterm = pterm[1:] + pterm[0]
-            
-            #Aqui ya tenemos la palabra que se debe buscar en el ptindex
-            
-            if(s == "*"):
-                for element in self.ptindex[field].keys():
-                    if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1]):
-                        res = self.or_posting(res,self.ptindex[field][element])
+        # Se hacen permutaciones hasta que el carácter comodín se encuentra en la última posición
+        while pterm[len(pterm)-1] != s:
+            pterm = pterm[1:] + pterm[0]
+        
+        #print("in last pos", pterm)
+        #print("pt", pterm[0:len(pterm)-1])
+        #Aqui ya tenemos la palabra que se debe buscar en el ptindex
+        
+        if s == "*":
+            for element in self.ptindex[field].keys():
+                if element[:len(pterm)-1] == pterm[:len(pterm)-1]:
+                    #print(element[:len(pterm)-1])
+                    res = self.or_posting(res,self.ptindex[field][element])
 
-            #Si s == "?"
-            else:
-                for element in self.ptindex[field].keys():
-                    if(element[0:len(pterm)-1] == pterm[0:len(pterm)-1] and len(element) <= (len(pterm)-1)):
-                        res = self.or_posting(res,self.ptindex[field][element])
+        #Si s == "?"
+        else:
+            for element in self.ptindex[field].keys():
+                if element[:len(pterm)-1] == pterm[:len(pterm)-1]:
+                    #print("out",element)
+                    if len(element) <= len(pterm):
+                        #print("in", element)
+                        res = self.or_posting(res, self.ptindex[field][element])
 
         return res
 
