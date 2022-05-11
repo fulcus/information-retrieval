@@ -467,16 +467,18 @@ class SAR_Project:
         #Comprobamos si se debe realizar stemming
         elif (self.use_stemming):
             res = self.get_stemming(term, field)
+            
+        #Caso con búsquedas posicionales
+        elif self.get_positionals:
+            res = self.get_positionals(term, field)
 
         #Caso estándar
         elif (auxTerm in self.index[field]):
             res = self.index[field][auxTerm]
+            
         return res
 
-        
-        
-        
-        
+           
 
     def get_positionals(self, terms, field='article'):
         """
@@ -486,10 +488,57 @@ class SAR_Project:
                 "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
         return: posting list
         """
-        pass
-        ########################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE POSICIONALES ##
-        ########################################################
+        term_index = 1 
+        #posting list del primer termino
+        not1 = self.index[field][terms[0]][1] 
+        
+        while term_index < len(terms):
+            res = [] 
+            i = 0
+            l = 0
+            not2 = self.index[field][terms[term_index]][1] #posting list de term_index
+            
+            while i < len(noticias1) and l < len(noticias2):
+                
+                if not1[i][0] == not2[l][0]: #Si son la misma noticia
+                    aux = []
+                    pos1 = not1[i][2] 
+                    pos2 = not2[l][2] 
+                    j = 0
+                    k = 0
+                    
+                    #Por posición de term1 en not
+                    while j < len(pos1):
+                        #Por posición de term2 en not
+                        while k < len(pos2):
+                            if pos2[k] - pos1[j] == 1:
+                                aux.append(pos2[k])  #Se añade la posición a aux
+                            
+                            elif pos2[k] > pos1[j]:
+                                #No pueden ir seguidos
+                                break
+                            
+                            k += 1
+                            
+                        #Se añaden a res
+                        for a in aux:
+                            res.append([not2[l][0], 1,[a]]) 
+                            
+                        aux = [] 
+                        j+=1
+                        
+                    i += 1
+                    l += 1
+                #Si no son la misma:
+                elif not1[i][0] < not2[l][0]:
+                    i += 1
+                else:
+                    l += 1
+
+            term_index += 1
+            not1 = res
+            
+        return res
 
     def get_stemming(self, term, field='article'):
         """
