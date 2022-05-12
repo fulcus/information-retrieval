@@ -33,8 +33,6 @@ class SAR_Project:
         Puedes añadir más variables si las necesitas
         """
         self.index = {}  # hash para el indice invertido de terminos --> clave: termino, valor: posting list.
-        # Si se hace la implementacion multifield, se pude hacer un segundo nivel de hashing de tal forma que:
-        # self.index['title'] seria el indice invertido del campo 'title'.
         self.sindex = {}  # hash para el indice invertido de stems --> clave: stem, valor: lista con los terminos que tienen ese stem
         self.ptindex = {}  # hash para el indice permuterm.
         # diccionario de documentos --> clave: entero(docid),  valor: ruta del fichero.
@@ -43,8 +41,7 @@ class SAR_Project:
         self.weight = {}
         # hash de noticias --> clave entero (newid), valor: la info necesaria para diferenciar la noticia dentro de su fichero (doc_id y posición dentro del documento)
         self.news = {}
-        # expresion regular para hacer la tokenizacion
-        self.tokenizer = re.compile("\W+")
+        self.tokenizer = re.compile("\W+") # expresion regular para hacer la tokenizacion
         self.stemmer = SnowballStemmer('spanish')  # stemmer en castellano
         self.show_all = False  # valor por defecto, se cambia con self.set_showall()
         self.show_snippet = False  # valor por defecto, se cambia con self.set_snippet()
@@ -53,7 +50,7 @@ class SAR_Project:
         self.pterms = {}  # hash para el indice invertido permuterm --> clave: permuterm, valor: lista con los terminos que tienen ese permuterm
         self.sterms = {} # hash para el indice invertido de stems --> clave: stem, valor: lista con los terminos que tienen ese stem
         self.term_field = {} # términos en la query y aque campo pertenecen --> clave: término, valor: campo (field)
-        self.posindex = {}
+        self.posindex = {} # para posicional, self.posindex[field][word] = {newsid : [word_pos]}
 
     ###############################
     ###                         ###
@@ -278,12 +275,11 @@ class SAR_Project:
                     
                     # Añadimos la frecuencia del término en el documento y el campo en concreto
                     self.weight[field][word][newsid] = self.weight[field][word].get(newsid,0) + 1
-
             
             # Incrementar índice de la notícia
             newsid += 1
             news_pos += 1
-                
+            
 
     def tokenize(self, text):
         """
@@ -561,7 +557,6 @@ class SAR_Project:
                         res = self.or_posting(res, self.ptindex[field][element])
         return res
 
-
         
     def reverse_posting(self, p):
         """
@@ -668,7 +663,7 @@ class SAR_Project:
         Sacar uno snippet de cada termino con un contexto antes y despues.
         """
         size = 14 # max len of snippet for term
-        snip = ""
+        snippet = ""
         for term, field in self.term_field.items():
             tokens = self.tokenize(news[field])
             pos = -1
@@ -680,8 +675,8 @@ class SAR_Project:
             if pos >= 0:
                 for j in range(max((pos - int(size/2) + 1), 0), min(pos + int(size/2), len(tokens) - 1)):
                     term_snip = term_snip + tokens[j] + " "
-                snip += term_snip + " ... "
-        print(snip)
+                snippet += term_snip + " ... "
+        print(snippet)
 
 
     def solve_and_show(self, query):
