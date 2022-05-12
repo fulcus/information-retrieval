@@ -361,7 +361,9 @@ class SAR_Project:
             return []
 
         query = query.lower()
-        query_split = query.split(' ')  # Split query by terms
+        query_split = re.findall("(?:\".*?\"|\S)+", query)
+        print(query_split)
+        #query_split = query.split(' ')  # Split query by terms
 
         if query_split[0] == 'not':
             n = 2
@@ -374,6 +376,7 @@ class SAR_Project:
 
         # Call recursive function
         return self.solve_query_by_term(query_split[n:], prev)
+
 
     def solve_query_by_term(self, query, prev):  # Recursive function
         if len(query) == 0:
@@ -427,6 +430,7 @@ class SAR_Project:
         """
 
         # Se añade el término y campo de la consulta para el ránking
+        # TODO NOT
         self.term_field[term] = field
 
         res = []
@@ -441,8 +445,9 @@ class SAR_Project:
             res = self.get_stemming(term, field)
             
         #Caso con búsquedas posicionales
-        elif self.positional:
-            res = self.get_positionals(term, field)
+        elif self.positional and term[0] == term[-1] == '\"':
+            terms = term[1:-1].split()
+            res = self.get_positionals(terms, field)
 
         #Caso estándar
         elif term in self.index[field]:
@@ -451,7 +456,6 @@ class SAR_Project:
         return res
 
            
-
     def get_positionals(self, terms, field='article'):
         """
         NECESARIO PARA LA AMPLIACION DE POSICIONALES
@@ -460,8 +464,9 @@ class SAR_Project:
                 "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
         return: posting list
         """
-
+        
         terms = [terms[0][1:]] + terms[1:-1] + [terms[-1][0:-1]]
+        print("TERMS", terms)
         dictN = {}
         
         #Para cada palabra de terms
@@ -501,7 +506,6 @@ class SAR_Project:
         res = list(set(result))
         res.sort() #ordenamos el resultado
         return res
-        
         
 
     def get_stemming(self, term, field='article'):
