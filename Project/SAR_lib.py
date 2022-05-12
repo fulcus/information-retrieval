@@ -1,8 +1,9 @@
-import json
-from nltk.stem.snowball import SnowballStemmer
 import os
 import re
-import math #ranking
+import math
+import json
+
+from nltk.stem.snowball import SnowballStemmer
 
 
 class SAR_Project:
@@ -52,7 +53,7 @@ class SAR_Project:
         self.pterms = {}  # hash para el indice invertido permuterm --> clave: permuterm, valor: lista con los terminos que tienen ese permuterm
         self.sterms = {} # hash para el indice invertido de stems --> clave: stem, valor: lista con los terminos que tienen ese stem
         self.term_field = {} # términos en la query y aque campo pertenecen --> clave: término, valor: campo (field)
-
+        self.posindex = {}
 
     ###############################
     ###                         ###
@@ -141,6 +142,12 @@ class SAR_Project:
                 self.ptindex['keywords'] = {}
                 self.ptindex['article'] = {}
                 self.ptindex['summary'] = {}
+            if self.positional:
+                self.posindex['title'] = {}
+                self.posindex['date'] = {}
+                self.posindex['keywords'] = {}
+                self.posindex['article'] = {}
+                self.posindex['summary'] = {}
         else:
             self.index['article'] = {}
             self.weight['article'] = {}
@@ -148,6 +155,9 @@ class SAR_Project:
                 self.sindex['article'] = {}
             if self.permuterm:
                 self.ptindex['article'] = {}
+            if self.posindex:
+                self.posindex['article'] = {}
+
             
         for dir, subdirs, files in os.walk(root):
             for filename in files:
@@ -173,7 +183,6 @@ class SAR_Project:
 
         with open(filename) as fh:
             jlist = json.load(fh)
-
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
         # cada noticia es un diccionario con los campos:
         #      "title", "date", "keywords", "article", "summary"
@@ -199,7 +208,7 @@ class SAR_Project:
                 #Diccionario para stemming
                 stems = {}
 
-                terms = {}
+                terms = set()
                 if self.multifield:
                     if [item for item in self.fields if item[0] == field][0][1]:
                         words = self.tokenize(new[field])
@@ -208,6 +217,7 @@ class SAR_Project:
                 else:
                     words = self.tokenize(new[field])
                 # Por cada término del campo de la noticia    
+                word_pos = 0
                 for word in words:
 
                     # Versión stemming
@@ -247,11 +257,22 @@ class SAR_Project:
                                 self.pterms[termAux] = self.pterms.get(termAux, []) + [word]
                             termAux = termAux[1:] + termAux[0]
                     #-------------------------------
+                    
+                    if self.positional:
+                        if word in self.posindex[field]:
+                            if newsid not in self.posindex[field][word]:
+                                self.posindex[field][word][newsid] = [word_pos]
+                            else:
+                                self.posindex[field][word][newsid].append(word_pos)
+                        else:
+                            self.posindex[field][word] = {newsid : [word_pos]}
+                        word_pos += 1
+                    #-------------------------------
 
                     if word not in terms:
                         # Añadir término a la posting list si no lo hemos añadido
                         self.index[field][word] = self.index[field].get(word, []) + [newsid]
-                        terms[word] = True
+                        terms.add(word)
 
                         self.weight[field][word] = self.weight[field].get(word,{})
                     
@@ -362,8 +383,6 @@ class SAR_Project:
 
         query = query.lower()
         query_split = re.findall("(?:\".*?\"|\S)+", query)
-        print(query_split)
-        #query_split = query.split(' ')  # Split query by terms
 
         if query_split[0] == 'not':
             n = 2
@@ -432,13 +451,11 @@ class SAR_Project:
         # Se añade el término y campo de la consulta para el ránking
         # TODO NOT
         self.term_field[term] = field
-
         res = []
 
         #Comprobamos si se debe realizar permuterms
         if self.permuterm and ("*" in term or "?" in term):
             res = self.get_permuterm(term, field)
-
 
         #Comprobamos si se debe realizar stemming
         elif self.use_stemming:
@@ -464,47 +481,24 @@ class SAR_Project:
                 "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
         return: posting list
         """
-        
-        terms = [terms[0][1:]] + terms[1:-1] + [terms[-1][0:-1]]
-        print("TERMS", terms)
-        dictN = {}
-        
-        #Para cada palabra de terms
-        for word in terms:
-            if word not in dictN.keys():
-                #Si la palabra no está en el dict -> recorre posting list de word y añade
-                for aux in self.index[word]:
-                    dictN[word] = dictN.get(word,{}) 
-                    dictN[word][aux[1]] = dictN[word].get(aux[1],[])
-                    dictN[word][aux[1]].append(aux[2])
-        
-        lista = []  #posting list de noticias en las que aparecen las palabras
-        
-        for key in dictN.keys():
-            #Si la lista está vacía añadimos las keys
-            if lista == []:
-                lista = list(dictN[key].keys())
-            #Si no está vacía calcula el and de las dos posting lists 
-            else:
-                lista = self.and_posting(lista,list(dictN[key].keys()))
-                
-        result = []
-        
-        #Por cada noticia en lista
-        for doc in lista:
-            #Por cada vez que aparezca 
-            for i in dictN[terms[0]][doc]:
-                aux = i
-                add = True
-                #por cada term
-                for pos in range(1,len(terms)):
-                    if aux + pos not in dictN[terms[pos]][doc]: 
-                        add = False  #si no está en dict no añadimos
-                if add:
-                    result.append(doc) #añadimos el doc al resultado
-                    
-        res = list(set(result))
-        res.sort() #ordenamos el resultado
+
+        res = []
+        if terms[0] in self.posindex[field]:
+            for new, positions in self.posindex[field][terms[0]].items():
+                for pos in positions:
+                    next_pos = True
+                    for term in terms[1:]:
+                        if next_pos and term in self.posindex[field] \
+                        and new in self.posindex[field][term] \
+                        and pos + 1 in self.posindex[field][term][new]:
+                            pos += 1
+                        else:
+                            next_pos = False
+                    if next_pos:
+                        res += [new]
+
+        res = list(dict.fromkeys(res))
+        res.sort()
         return res
         
 
@@ -795,6 +789,3 @@ class SAR_Project:
         #Ordenamos las noticias por la lista de pesados  
         ranked_results = [x for _, x in sorted(zip(news_weight.values(), result), reverse=True)]
         return ranked_results, news_weight
-
-        
-       
