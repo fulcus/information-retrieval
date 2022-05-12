@@ -49,7 +49,6 @@ class SAR_Project:
         self.show_snippet = False  # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False  # valor por defecto, se cambia con self.set_stemming()
         self.use_ranking = False  # valor por defecto, se cambia con self.set_ranking()
-        self.N = 0 # Número de documentos en la colección
         self.pterms = {}  # hash para el indice invertido permuterm --> clave: permuterm, valor: lista con los terminos que tienen ese permuterm
         self.sterms = {} # hash para el indice invertido de stems --> clave: stem, valor: lista con los terminos que tienen ese stem
         self.term_field = {} # términos en la query y aque campo pertenecen --> clave: término, valor: campo (field)
@@ -156,17 +155,6 @@ class SAR_Project:
                     fullname = os.path.join(dir, filename)
                     self.index_file(fullname)
 
-        # debug
-        # filename = '2016-01-31.json'
-        # if filename.endswith('.json'):
-        #     fullname = os.path.join(root, filename)
-        #     self.index_file(fullname)
-
-        
-
-        ##########################################
-        ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
-        ##########################################
 
     def index_file(self, filename):
         """
@@ -274,10 +262,7 @@ class SAR_Project:
             # Incrementar índice de la notícia
             newsid += 1
             news_pos += 1
-        
-        # Número de noticias en la colección
-        self.N = newsid - 1
-
+                
 
     def tokenize(self, text):
         """
@@ -372,13 +357,10 @@ class SAR_Project:
                 "prev": incluido por si se quiere hacer una version recursiva. No es necesario utilizarlo.
         return: posting list con el resultado de la query
         """
-        # print("idx query", self.index['article'])
         if query is None or len(query) == 0:
             return []
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
-        query = query.lower()  # To lowercase
+
+        query = query.lower()
         query_split = query.split(' ')  # Split query by terms
 
         if query_split[0] == 'not':
@@ -445,7 +427,7 @@ class SAR_Project:
         """
 
         # Se añade el término y campo de la consulta para el ránking
-        self.term_field[(term, field)] = True
+        self.term_field[term] = field
 
         res = []
 
@@ -600,11 +582,6 @@ class SAR_Project:
         param:  "p": posting list
         return: posting list con todos los newid exceptos los contenidos en p
         """
-        #
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
-
         res = []
         # For each document, if it does not appear in p, add to res
         for l in range(len(self.news)):
@@ -619,10 +596,6 @@ class SAR_Project:
         param:  "p1", "p2": posting lists sobre las que calcular
         return: posting list con los newid incluidos en p1 y p2
         """
-        #
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
         res = []
         cont1 = 0  # Pointer posting list 1
         cont2 = 0  # Pointer posting list 2
@@ -645,11 +618,6 @@ class SAR_Project:
         param:  "p1", "p2": posting lists sobre las que calcular
         return: posting list con los newid incluidos de p1 o p2
         """
-        #
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
-
         res = []
         cont1 = 0  # Pointer posting list 1
         cont2 = 0  # Pointer posting list 2
@@ -712,7 +680,7 @@ class SAR_Project:
         """
         size = 14 # max len of snippet for term
         snip = ""
-        for term, field in self.term_field:
+        for term, field in self.term_field.items():
             tokens = self.tokenize(news[field])
             pos = -1
             for i, token in enumerate(tokens):
@@ -742,10 +710,6 @@ class SAR_Project:
         if self.use_ranking:
             result, news_weight = self.rank_result(result, self.term_field)
 
-
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
         print("========================================")
         print('Query:\t' + "'" + query + "'" + '\nNumber of results: ' + str(len(result)))
 
@@ -757,7 +721,6 @@ class SAR_Project:
                 jlist = json.load(fh)
 
             news = jlist[new['position']]
-            #print(news)
             
             #Calculo del score en caso de utilizar ranking
             if self.use_ranking: 
@@ -787,9 +750,9 @@ class SAR_Project:
         #Devolveremos las noticias ordenadas en función de su relevancia
         #Pesado tf*idf
         #En caso de utilizar stemming tendremos en cuenta el uso de stems
-        
+
         terminos = {} #terminos de la query
-        for termino, campo in query.keys():
+        for termino, campo in query.items():
             #En caso normal añadimos termino y campo a los terminos de la query
             #En caso de usar stemming añadimos derivs y campo
             
@@ -817,7 +780,7 @@ class SAR_Project:
                 #número de documentos que contienen el término
                 df = len(self.weight[campo][termino]) 
                 #Calculo de la frecuencia del documento inversa de t
-                idf = math.log10(self.N/df)
+                idf = math.log10(len(self.news)/df)
                 
                 peso_term = tf * idf #peso del término
                 peso_not += peso_term #Sumamos al peso de la noticia el peso de cada término 
