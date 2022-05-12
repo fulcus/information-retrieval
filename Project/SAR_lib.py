@@ -186,15 +186,11 @@ class SAR_Project:
         with open(filename) as fh:
             jlist = json.load(fh)
 
-        #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
         # cada noticia es un diccionario con los campos:
         #      "title", "date", "keywords", "article", "summary"
         #
         # En la version basica solo se debe indexar el contenido "article"
-        #
-        #
-        #
         docid = len(self.docs)
         self.docs[docid] = filename # Fijar entrada del diccionario docs
         newsid = len(self.news)
@@ -251,7 +247,7 @@ class SAR_Project:
                         termAux = word + "$"
 
                         # Generamos los términos permuterm y actualizamos sus posting lists
-                        for i in range(len(termAux)):
+                        for _ in range(len(termAux)):
                             self.ptindex[field][termAux] = self.ptindex[field].get(termAux, []) + [newsid]
 
                             # Añadimos el permuterm si no esta en el diccionario
@@ -282,10 +278,6 @@ class SAR_Project:
         # Número de noticias en la colección
         self.N = newsid - 1
 
-
-
-        
-            
 
     def tokenize(self, text):
         """
@@ -319,7 +311,7 @@ class SAR_Project:
         """
         NECESARIO PARA LA AMPLIACION DE PERMUTERM
         Crea el indice permuterm (self.ptindex) para los terminos de todos los indices.
-       """
+        """
 
        # Recorremos todos los campos del índice de términos
         for field in self.index:
@@ -327,12 +319,12 @@ class SAR_Project:
             # Recorremos todos los términos del campo
             for term in self.index[field]:
                     termAux = term + "$"
-                    i=0
+                    i = 0
 
                     # Generamos los términos permuterm y actualizamos sus posting lists
-                    for l in termAux:
-                        permuterm = termAux[i:] + termAux[0:i]
-                        i=i+1
+                    for _ in termAux:
+                        permuterm = termAux[i:] + termAux[:i]
+                        i = i + 1
                         self.ptindex[field][permuterm] = self.or_posting(self.ptindex[field].get(permuterm, []),self.index[field][term])
                         self.pterms[permuterm] = self.pterms.get(permuterm, []) + [term]
 
@@ -351,12 +343,12 @@ class SAR_Project:
         for field in self.index.keys():
             print("\t# of tokens in '{}': {}".format(field, len(self.index[field])))
         print('----------------------------------------')
-        if (self.permuterm):
+        if self.permuterm:
             print('PERMUTERMS:')
             for field in self.ptindex.keys():
                  print("\t# of permuterms in '{}': {}".format(field, len(self.ptindex[field])))
             print('----------------------------------------')
-        if (self.stemming):
+        if self.stemming:
             print('STEMS:')
             for field in self.sindex.keys():
                  print("\t# of stems in '{}': {}".format(field, len(self.sindex[field])))
@@ -749,10 +741,17 @@ class SAR_Project:
 
         for i, newsid in enumerate(result):
             doc = self.news[newsid]
+            
             filename = self.docs[doc['docid']]
             with open(filename) as fh:
                 jlist = json.load(fh)
+
             news = jlist[doc['position']]
+            
+            # TODO como se calcula el score??
+            # if self.use_ranking:
+            #     score = ??
+
             print("#{}      ({})  ({})  ({})  {}      ({})"
             .format(i + 1, score, newsid, news['date'], news['title'], news['keywords']))
 
@@ -815,8 +814,8 @@ class SAR_Project:
             pesado.append(peso_not)
             
         #Ordenamos las noticias por la lista de pesados
-        aux = zip(pesado,result)
-        rank = [x for _,x in sorted(aux, reverse=True)]
+        aux = zip(pesado, result)
+        rank = [x for _, x in sorted(aux, reverse=True)]
         
         return rank
 
