@@ -740,7 +740,7 @@ class SAR_Project:
         result = self.solve_query(query)
         score = 0
         if self.use_ranking:
-            result = self.rank_result(result, self.term_field)
+            result, news_weight = self.rank_result(result, self.term_field)
 
 
         ########################################
@@ -761,14 +761,13 @@ class SAR_Project:
             
             #Calculo del score en caso de utilizar ranking
             if self.use_ranking: 
-                score = round(self.weight_doc[newsid],2)
+                score = round(news_weight[newsid], 2)
             else: 
                 score = 0 
             
             if self.show_snippet:
                 print("#{}\nScore: {}\n{}\nDate: {}\nTitle: {}\nKeywords: {}"
                 .format(i + 1, score, newsid, news['date'], news['title'], news['keywords']))
-                # TODO add snippet
                 self.print_snippet(news)
 
                 if i != len(result) - 1: print("--------------------")
@@ -790,12 +789,7 @@ class SAR_Project:
         #En caso de utilizar stemming tendremos en cuenta el uso de stems
         
         terminos = {} #terminos de la query
-        pesado = [] #pesado de los docs
-        
-        for tupla in query.keys():
-            #de cada tupla de la query sacamos termino y campo
-            termino = tupla[0]
-            campo = tupla[1]
+        for termino, campo in query.keys():
             #En caso normal añadimos termino y campo a los terminos de la query
             #En caso de usar stemming añadimos derivs y campo
             
@@ -806,16 +800,13 @@ class SAR_Project:
                     terminos[(t, campo)] = True
             #Caso básico      
             else:
-                terminos[(termino, campo)]
+                terminos[(termino, campo)] = True
         
+        news_weight = {} # clave: noticia, valor: pesado
         for noticia in result:
             peso_not = 0 #peso de esta noticia
-            
-            for tupla in terminos:
-                termino = tupla[0]
-                campo = tupla[1]
+            for termino, campo in terminos:
                 #por cada término calculamos su peso
-                
                 ftd = self.weight[campo][termino].get(noticia,0) #frecuencia del término
                 #Calculo del pesado de la frecuencia del término por pesado log
                 if ftd > 0:
@@ -832,13 +823,11 @@ class SAR_Project:
                 peso_not += peso_term #Sumamos al peso de la noticia el peso de cada término 
             
             #añadimos el pesado de la noticia al rank de pesados
-            pesado.append(peso_not)
-            
-        #Ordenamos las noticias por la lista de pesados
-        aux = zip(pesado, result)
-        rank = [x for _, x in sorted(aux, reverse=True)]
+            news_weight[noticia] = peso_not
         
-        return rank
+        #Ordenamos las noticias por la lista de pesados  
+        ranked_results = [x for _, x in sorted(zip(news_weight.values(), result), reverse=True)]
+        return ranked_results, news_weight
 
         
        
