@@ -753,8 +753,7 @@ class SAR_Project:
         score = 0
         if self.use_ranking:
             result = self.rank_result(result, self.term_field)
-            # score = ???
-            # TODO como se obtiene el score de una query?
+
 
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
@@ -771,10 +770,13 @@ class SAR_Project:
 
             news = jlist[new['position']]
             #print(news)
-            # TODO como se calcula el score??
-            # if self.use_ranking:
-            #     score = ??
-
+            
+            #Calculo del score en caso de utilizar ranking
+            if self.use_ranking: 
+                score = round(self.weight_doc[newsID],2)
+            else: 
+                score = 0 
+            
             if self.show_snippet:
                 print("#{}\nScore: {}\n{}\nDate: {}\nTitle: {}\nKeywords: {}"
                 .format(i + 1, score, newsid, news['date'], news['title'], news['keywords']))
