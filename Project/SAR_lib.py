@@ -489,7 +489,7 @@ class SAR_Project:
         return: posting list
         """
         term_index = 1 
-        #posting list del primer termino
+        #posting list del term0
         not1 = self.index[field][terms[0]][1] 
         
         while term_index < len(terms):
@@ -498,7 +498,7 @@ class SAR_Project:
             l = 0
             not2 = self.index[field][terms[term_index]][1] #posting list de term_index
             
-            while i < len(noticias1) and l < len(noticias2):
+            while i < len(not1) and l < len(not2):
                 
                 if not1[i][0] == not2[l][0]: #Si son la misma noticia
                     aux = []
