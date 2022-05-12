@@ -492,18 +492,18 @@ class SAR_Project:
         #posting list del term0
         not1 = self.index[field][terms[0]][1] 
         
-        while term_index < len(terms):
+        while term_index < len(terms): #recorremos los terminos
             res = [] 
             i = 0
             l = 0
             not2 = self.index[field][terms[term_index]][1] #posting list de term_index
             
-            while i < len(not1) and l < len(not2):
-                
-                if not1[i][0] == not2[l][0]: #Si son la misma noticia
+            while i < len(not1) and l < len(not2): #recorremos las noticias que coinciden
+                #Si son la misma noticia
+                if not1[i][0] == not2[l][0]: 
                     aux = []
-                    pos1 = not1[i][2] 
-                    pos2 = not2[l][2] 
+                    pos1 = not1[i][2]  #posiciones del term1 en not
+                    pos2 = not2[l][2]  #posiciones del term2 en not
                     j = 0
                     k = 0
                     
@@ -511,11 +511,11 @@ class SAR_Project:
                     while j < len(pos1):
                         #Por posición de term2 en not
                         while k < len(pos2):
-                            if pos2[k] - pos1[j] == 1:
+                            if pos2[k] - pos1[j] == 1: #si van seguidos
                                 aux.append(pos2[k])  #Se añade la posición a aux
                             
                             elif pos2[k] > pos1[j]:
-                                #No pueden ir seguidos
+                                #No van seguidos -> siguiente
                                 break
                             
                             k += 1
@@ -529,14 +529,14 @@ class SAR_Project:
                         
                     i += 1
                     l += 1
-                #Si no son la misma:
+                #Si no son la misma, buscamos que coincidan
                 elif not1[i][0] < not2[l][0]:
                     i += 1
                 else:
                     l += 1
 
-            term_index += 1
-            not1 = res
+            term_index += 1 #siguiente termino en terms
+            not1 = res #not1 -> coincidencias anteriores
             
         return res
 
