@@ -717,6 +717,28 @@ class SAR_Project:
         print("%s\t%d" % (query, len(result)))
         return len(result)  # para verificar los resultados (op: -T)
 
+
+    def print_snippet(self, news):
+        """
+        Sacar uno snippet de cada termino con un contexto antes y despues.
+        """
+        size = 14 # max len of snippet for term
+        snip = ""
+        for term, field in self.term_field:
+            tokens = self.tokenize(news[field])
+            pos = -1
+            for i, token in enumerate(tokens):
+                if token == term:
+                    pos = i
+                    break
+            term_snip = ""
+            if pos >= 0:
+                for j in range(max((pos - int(size/2) + 1), 0), min(pos + int(size/2), len(tokens) - 1)):
+                    term_snip = term_snip + tokens[j] + " "
+                snip += term_snip + " ... "
+        print(snip)
+
+
     def solve_and_show(self, query):
         """
         NECESARIO PARA TODAS LAS VERSIONES
@@ -731,34 +753,39 @@ class SAR_Project:
         score = 0
         if self.use_ranking:
             result = self.rank_result(result, self.term_field)
+            # score = ???
+            # TODO como se obtiene el score de una query?
 
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
+        print("========================================")
         print('Query:\t' + "'" + query + "'" + '\nNumber of results: ' + str(len(result)))
 
         for i, newsid in enumerate(result):
-            doc = self.news[newsid]
+            new = self.news[newsid]
             
-            #Calculo del score en caso de utilizar ranking
-            if self.use_ranking: 
-                score = round(self.weight_doc[newsID],2)
-            else: 
-                score = 0 
-            
-            filename = self.docs[doc['docid']]
+            filename = self.docs[new['docid']]
             with open(filename) as fh:
                 jlist = json.load(fh)
 
-            news = jlist[doc['position']]
-            
+            news = jlist[new['position']]
+            #print(news)
             # TODO como se calcula el score??
             # if self.use_ranking:
             #     score = ??
 
-            print("#{}      ({})  ({})  ({})  {}      ({})"
-            .format(i + 1, score, newsid, news['date'], news['title'], news['keywords']))
+            if self.show_snippet:
+                print("#{}\nScore: {}\n{}\nDate: {}\nTitle: {}\nKeywords: {}"
+                .format(i + 1, score, newsid, news['date'], news['title'], news['keywords']))
+                # TODO add snippet
+                self.print_snippet(news)
 
+                if i != len(result) - 1: print("--------------------")
+            else:
+                print("#{}      ({})  ({})  ({})  {}      ({})"
+                .format(i + 1, score, newsid, news['date'], news['title'], news['keywords']))
+        print("========================================")
 
     def rank_result(self, result, query):
         """
