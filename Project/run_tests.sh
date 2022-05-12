@@ -17,18 +17,12 @@ diff test_stats_2015_SPMO.txt stats/stats_2015_SPMO.txt
 python3 SAR_Indexer.py -S -P -M -O corpora/2016 2016_index_SPMO.bin > test_stats_2016_SPMO.txt
 diff test_stats_2016_SPMO.txt stats/stats_2016_SPMO.txt
 
+# searcher with stemming
+python3 SAR_Searcher.py -S -T results/result_2015_no_parentesis_stemming.txt 2015_index_SPMO.bin
+python3 SAR_Searcher.py -S -T results/result_2016_no_parentesis_stemming.txt 2016_index_SPMO.bin
 
-# python3 SAR_Searcher.py -S -T results/result_2015_edited_stemming.txt 2015_index_SPMO.bin
-
-
-
-# # indexer: stopwords, permuterm, multifield
-# python3 SAR_Indexer.py -S -P -M -O corpora/2015 2015_index_full.bin
-# python3 SAR_Indexer.py -S -P -M -O corpora/2016 2016_index_full.bin
-
-# # searcher: minimo stemming
-# python3 SAR_Searcher.py -S -T results/result_2015_minimo_stemming.txt 2015_index_full.bin
-# python3 SAR_Searcher.py -S -T results/result_2016_minimo_stemming.txt 2016_index_full.bin
-# # full stemming
-# python3 SAR_Searcher.py -S -T results/result_2015_full_stemming.txt 2015_index_full.bin
-# python3 SAR_Searcher.py -S -T results/result_2016_full_stemming.txt 2016_index_full.bin
+# searcher no stemming
+python3 SAR_Indexer.py -P -M -O corpora/2015 2015_index_PMO.bin
+python3 SAR_Searcher.py -T results/result_2015_no_parentesis.txt 2015_index_PMO.bin
+python3 SAR_Indexer.py -P -M -O corpora/2016 2016_index_PMO.bin
+python3 SAR_Searcher.py -T results/result_2016_no_parentesis.txt 2016_index_PMO.bin
