@@ -535,8 +535,12 @@ class SAR_Project:
 
             term_index += 1 #siguiente termino en terms
             not1 = res #not1 -> coincidencias anteriores
-            
-        return res
+        
+        docs=[]
+        for p in res:
+            if p[0] not in docs:
+                docs.append(pos[0])
+        return docs
 
     def get_stemming(self, term, field='article'):
         """
@@ -734,7 +738,7 @@ class SAR_Project:
         result = self.solve_query(query)
         score = 0
         if self.use_ranking:
-            result = self.rank_result(result, query)
+            result = self.rank_result(result, self.term_field)
             # score = ???
             # TODO como se obtiene el score de una query?
 
