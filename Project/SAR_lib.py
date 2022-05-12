@@ -449,26 +449,23 @@ class SAR_Project:
         """
 
         # Se añade el término y campo de la consulta para el ránking
-        # TODO NOT
         self.term_field[term] = field
         res = []
 
-        #Comprobamos si se debe realizar permuterms
-        if self.permuterm and ("*" in term or "?" in term):
-            res = self.get_permuterm(term, field)
-
-        #Comprobamos si se debe realizar stemming
-        elif self.use_stemming:
-            res = self.get_stemming(term, field)
-            
         #Caso con búsquedas posicionales
-        elif self.positional and term[0] == term[-1] == '\"':
-            terms = term[1:-1].split()
+        if self.positional and term[0] == term[-1] == '\"':
+            terms = term[1:-1].split() # removes quotes and returns list of words
             res = self.get_positionals(terms, field)
-
-        #Caso estándar
-        elif term in self.index[field]:
-            res = self.index[field][term]
+        else:
+            #Comprobamos si se debe realizar permuterms
+            if self.permuterm and ("*" in term or "?" in term):
+                res = self.get_permuterm(term, field)
+            #Comprobamos si se debe realizar stemming
+            elif self.use_stemming:
+                res = self.get_stemming(term, field)
+            #Caso estándar
+            elif term in self.index[field]:
+                res = self.index[field][term]
             
         return res
 
@@ -524,8 +521,6 @@ class SAR_Project:
         return res
 
 
-   
-
     def get_permuterm(self, term, field='article'):
         """
         NECESARIO PARA LA AMPLIACION DE PERMUTERM
@@ -550,18 +545,14 @@ class SAR_Project:
         while pterm[len(pterm)-1] != s:
             pterm = pterm[1:] + pterm[0]
         
-        #print("in last pos", pterm)
-        #print("pt", pterm[0:len(pterm)-1])
         #Aqui ya tenemos la palabra que se debe buscar en el ptindex
-        
         if s == "*":
             for element in self.ptindex[field].keys():
                 if element[:len(pterm)-1] == pterm[:len(pterm)-1]:
                     #print(element[:len(pterm)-1])
                     res = self.or_posting(res,self.ptindex[field][element])
 
-        #Si s == "?"
-        else:
+        else:  # s == "?"
             for element in self.ptindex[field].keys():
                 if element[:len(pterm)-1] == pterm[:len(pterm)-1]:
                     #print("out",element)
