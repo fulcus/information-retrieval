@@ -478,61 +478,49 @@ class SAR_Project:
                 "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
         return: posting list
         """
-        term_index = 1 
-        #posting list del term0
-        not1 = self.index[field][terms[0]][1] 
-        
-        while term_index < len(terms): #recorremos los terminos
-            res = [] 
-            i = 0
-            l = 0
-            not2 = self.index[field][terms[term_index]][1] #posting list de term_index
-            
-            while i < len(not1) and l < len(not2): #recorremos las noticias que coinciden
-                #Si son la misma noticia
-                if not1[i][0] == not2[l][0]: 
-                    aux = []
-                    pos1 = not1[i][2]  #posiciones del term1 en not
-                    pos2 = not2[l][2]  #posiciones del term2 en not
-                    j = 0
-                    k = 0
-                    
-                    #Por posición de term1 en not
-                    while j < len(pos1):
-                        #Por posición de term2 en not
-                        while k < len(pos2):
-                            if pos2[k] - pos1[j] == 1: #si van seguidos
-                                aux.append(pos2[k])  #Se añade la posición a aux
-                            
-                            elif pos2[k] > pos1[j]:
-                                #No van seguidos -> siguiente
-                                break
-                            
-                            k += 1
-                            
-                        #Se añaden a res
-                        for a in aux:
-                            res.append([not2[l][0], 1,[a]]) 
-                            
-                        aux = [] 
-                        j+=1
-                        
-                    i += 1
-                    l += 1
-                #Si no son la misma, buscamos que coincidan
-                elif not1[i][0] < not2[l][0]:
-                    i += 1
-                else:
-                    l += 1
 
-            term_index += 1 #siguiente termino en terms
-            not1 = res #not1 -> coincidencias anteriores
+        terms = [terms[0][1:]] + terms[1:-1] + [terms[-1][0:-1]]
+        dictN = {}
         
-        docs=[]
-        for p in res:
-            if p[0] not in docs:
-                docs.append(pos[0])
-        return docs
+        #Para cada palabra de terms
+        for word in terms:
+            if word not in dictN.keys():
+                #Si la palabra no está en el dict -> recorre posting list de word y añade
+                for aux in self.index[word]:
+                    dictN[word] = dictN.get(word,{}) 
+                    dictN[word][aux[1]] = dictN[word].get(aux[1],[])
+                    dictN[word][aux[1]].append(aux[2])
+        
+        lista = []  #posting list de noticias en las que aparecen las palabras
+        
+        for key in dictN.keys():
+            #Si la lista está vacía añadimos las keys
+            if lista == []:
+                lista = list(dictN[key].keys())
+            #Si no está vacía calcula el and de las dos posting lists 
+            else:
+                lista = self.and_posting(lista,list(dictN[key].keys()))
+                
+        result = []
+        
+        #Por cada noticia en lista
+        for doc in lista:
+            #Por cada vez que aparezca 
+            for i in dictN[terms[0]][doc]:
+                aux = i
+                add = True
+                #por cada term
+                for pos in range(1,len(terms)):
+                    if aux + pos not in dictN[terms[pos]][doc]: 
+                        add = False  #si no está en dict no añadimos
+                if add:
+                    result.append(doc) #añadimos el doc al resultado
+                    
+        res = list(set(result))
+        res.sort() #ordenamos el resultado
+        return res
+        
+        
 
     def get_stemming(self, term, field='article'):
         """
@@ -773,7 +761,7 @@ class SAR_Project:
             
             #Calculo del score en caso de utilizar ranking
             if self.use_ranking: 
-                score = round(self.weight_doc[newsID],2)
+                score = round(self.weight_doc[newsid],2)
             else: 
                 score = 0 
             
