@@ -451,30 +451,28 @@ class SAR_Project:
                 "field": campo sobre el que se debe recuperar la posting list, solo necesario si se hace la ampliacion de multiples indices
         return: posting list
         """
-     
-        auxTerm = term
 
         # Se añade el término y campo de la consulta para el ránking
-        self.term_field[(auxTerm, field)] = True
+        self.term_field[(term, field)] = True
 
         res = []
 
         #Comprobamos si se debe realizar permuterms
-        if ("*" in auxTerm or "?" in auxTerm):
-            res = self.get_permuterm(auxTerm,field)
+        if self.permuterm and ("*" in term or "?" in term):
+            res = self.get_permuterm(term, field)
 
 
         #Comprobamos si se debe realizar stemming
-        elif (self.use_stemming):
+        elif self.use_stemming:
             res = self.get_stemming(term, field)
             
         #Caso con búsquedas posicionales
-        elif self.get_positionals:
+        elif self.positional:
             res = self.get_positionals(term, field)
 
         #Caso estándar
-        elif (auxTerm in self.index[field]):
-            res = self.index[field][auxTerm]
+        elif term in self.index[field]:
+            res = self.index[field][term]
             
         return res
 
@@ -549,14 +547,12 @@ class SAR_Project:
         return: posting list
         """
 
-        
-
         # Creamos stem del termino
         stem = self.stemmer.stem(term)
         res = []
 
         # Buscamos si esta indexado
-        if (stem in self.sindex[field]):
+        if stem in self.sindex[field]:
 
             # Devolvemos la posting list asociada
             res = self.sindex[field][stem]
@@ -736,28 +732,26 @@ class SAR_Project:
         return: el numero de noticias recuperadas, para la opcion -T
         """
         result = self.solve_query(query)
+        score = 0
         if self.use_ranking:
             result = self.rank_result(result, query)
+            # score = ???
+            # TODO como se obtiene el score de una query?
 
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
-        print('Query:\t' + "'" + query + "'" +
-              '\nNumber of results: ' + str(len(result)))
+        print('Query:\t' + "'" + query + "'" + '\nNumber of results: ' + str(len(result)))
 
-        if self.multifield:
-            for k in range(len(result)):
-                doc = self.news[result[k]]
-                filename = self.docs[doc[0]]
-                with open(filename) as fh:
-                    jlist = json.load(fh)
-                news = jlist[doc[1]]
-                print("#{}      ({})  ({})  ({})  {}      ({})".format(
-                    k, 0, result[k], news['date'], news['title'], news['keywords']))
+        for i, newsid in enumerate(result):
+            doc = self.news[newsid]
+            filename = self.docs[doc['docid']]
+            with open(filename) as fh:
+                jlist = json.load(fh)
+            news = jlist[doc['position']]
+            print("#{}      ({})  ({})  ({})  {}      ({})"
+            .format(i + 1, score, newsid, news['date'], news['title'], news['keywords']))
 
-        for k in range(len(result)):
-            print("#{}      ({})  ({})  ({})  {}      ({})".format(
-                k, 0, result[k], 'date', 'Title', 'keywords'))
 
     def rank_result(self, result, query):
         """
