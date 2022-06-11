@@ -200,8 +200,11 @@ This script simulates this by creating phrases from words randomly chosen from a
 ### Usage
 
   `SAR_p3_monkey_indexer.py textfile [tri]` : Creates an index from the textfile. Defaults to bigrams, add `tri` to create trigrams.
+  
   `SAR_p3_monkey_info.py indexfile`: Generates information from an index.
+  
   `SAR_p3_monkey_evolved.py indexfile`:  Generates phrases from the index.
+  
   `SAR_p3_monkey_lib.py`: Library for all the methods used (not executable).
 
   See [here](InfiniteMonkey/test_true/spam_tri.info) for a sample output file.
