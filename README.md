@@ -2,9 +2,9 @@
 
 This repository contains the code for the course Information Retrieval at Universidad Politécnica de València. 
 
-It consists of 3 small projects (Lab1-3) and the main final Project.
+It consists of 3 small projects (PigLatin, WordCounter, InfiniteMonkey) and a main final project (NewsSearcher).
 
-# Final Project 
+# NewsSearcher 
 
 The final project consists in the implementation in python3 of a news indexing and retrieval system.
 
@@ -143,20 +143,24 @@ de jornada con destino en esta isla y que deja clara su situación  ... conexió
 # Mini Projects
 
 ## Pig Latin
-Pig Latin is a language game where English words are altered in a set of rules:     
-        1. If word does not start with a letter, it will not be changed.     
-        2. Every word that starts with a consonant, all consonants before the first vocal will be moved to the end, and 'ay' is added.     
-        3. Words that start with a vocal, 'yay' will be added at the end.
+Pig Latin is a language game where English words are altered with the following set of rules:     
+        1. Words that do not start with a letter will not be changed.
+        2. Words that start with a consonant: all consonants before the first vocal will be moved to the end, and 'ay' is added.
+        3. Words that start with a vocal: 'yay' be added at the end.
 	
 #### Examples   
-  mess ⇒ essmay     
-  father ⇒ atherfay     
-  Rwanda ⇒ Andarway     
-  choir ⇒ oirchay    
-  ant ⇒ antyay     
-  4G ⇒ 4G      
+  mess -> essmay     
+  father -> atherfay     
+  Rwanda -> Andarway     
+  choir -> oirchay    
+  ant -> antyay     
+  4G -> 4G      
 
-This script translates from Pig Latin to English. If no argument is given, it will promp you to enter the phrases. If a text file is given, it will generate a text file with the traduction.  
+### Usage
+
+This script translates from English to Pig Latin. If no argument is given, it will promp you to enter the phrases interactively. If a text file is given, it will generate a text file with the traduction.  
+
+Sample of interactive usage:
 
 ```
 ENGLISH: Spam, SPAM, Spam, Egg and Spam;    
@@ -171,6 +175,7 @@ PIG LATIN: 4G andyay amspay
 ## Count Words
 Script that analyzes a given text file, and gives a complete evaluation of the text in terms of number of lines, number of words with/without stopwords, dictionary of the file, etc.
 
+### Usage
 ```
 usage: count_words.py [-h] [-s STOPWORDS] [-l] [-b] [-f] file [file ...]        
 - positional arguments:    
@@ -184,13 +189,20 @@ filename with the stopwords.
 -f, --full show full stats.  
 ```
 
+See [here](WordCounter/test_true/quijote_lsbf_stats.txt) for a sample output file.
+
+
 ## Infinite Monkey
 Infinite Monkey Theorem: a monkey hitting keys at random on a typewriter keyboard for an infinite amount of time will almost surely type any given text.   
 
 This script simulates this by creating phrases from words randomly chosen from a dictionary of bigrams or trigrams. The results are surprisingly good, as some phrases generated do make sense.    
 
-  `SAR_p3_monkey_indexer.py`: Creates an index from the textfile. Default bigrams, however if in prompt tri is typed trigram indexer will be generated.         
-  `SAR_p3_monkey_info.py`: Generates information from an index.    
-  `SAR_p3_monkey_evolved.py`:  Generates phrases from the index.    
-  `SAR_p3_monkey_lib.py`: Library for all the methods used.
+### Usage
+
+  `SAR_p3_monkey_indexer.py textfile [tri]` : Creates an index from the textfile. Defaults to bigrams, add `tri` to create trigrams.
+  `SAR_p3_monkey_info.py indexfile`: Generates information from an index.
+  `SAR_p3_monkey_evolved.py indexfile`:  Generates phrases from the index.
+  `SAR_p3_monkey_lib.py`: Library for all the methods used (not executable).
+
+  See [here](InfiniteMonkey/test_true/spam_tri.info) for a sample output file.
 
